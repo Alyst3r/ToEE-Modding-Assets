@@ -1,0 +1,41 @@
+//------------------------------------------------
+//--- 010 Editor v13.0.1 Binary Template
+//
+//      File: ToEEDAG.bt
+//   Authors: Aleist3r, based on structs shared by
+//            XVicious on co8.org
+//   Version: 1.0
+//   Purpose: Parse ToEE clipping files to
+//            to readable data
+//  Category: Game
+// File Mask: *.DAG
+//  ID Bytes: None, it's pure geometry data
+//   History: 
+//------------------------------------------------
+LittleEndian();
+
+struct {
+    float xOffset <name="X Offset">;
+    float yOffset <name="Y Offset">;
+    float zOffset <name="Z Offset">;
+    float boundingRadius <name="Bounding Box Radius">;
+    uint objectCount <name="Object Count">;
+    uint dataStartOffset <name="Data Start Offset">;
+} header <name="File Header", fgcolor=0xFFFFFF, bgcolor=0x000000>;
+
+struct {
+    uint vertexCount <name="Vertex Count">;
+    uint triangleCount <name="Triangle Count">;
+    uint vertexDataStartOffset <name="Vertex Data Start Offset">;
+    uint triangleDataStartOffset <name="Triangle Data Start Offset">;
+} objHeader <name="Object Header", fgcolor=0xFFFFFF, bgcolor=0x000088>;
+
+struct {
+    float xPos <name="Position X">;
+    float yPos <name="Position Y">;
+    float zPos <name="Position Z">;
+} vertexData[objHeader.vertexCount] <name="Vertex Data", fgcolor=0xF0D0B0>;
+
+struct {
+    short vertexIndex[3] <name="Triangle Vertex Index">;
+} triangleVertexIndex[objHeader.triangleCount] <name="Triangle Data", fgcolor=0x90B0D0>;
