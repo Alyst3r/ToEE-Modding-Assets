@@ -6,4 +6,4 @@ cmake_policy(SET CMP0048 NEW)
 project(DAGTools)
 
 add_subdirectory(DAGHeaderParser)
-
+add_subdirectory(DAGtoObjConverter)
