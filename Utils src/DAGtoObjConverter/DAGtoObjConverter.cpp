@@ -13,9 +13,9 @@
 #include <string>
 
 struct vertexPos {
-	float x;
-	float y;
-	float z;
+	double x;
+	double y;
+	double z;
 };
 
 struct triangleVertexIndex {
@@ -84,11 +84,11 @@ uint32_t ReadTriangleDataPos(FILE* filename)
 
 void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices, bool adjust)
 {
-	float scaleAdjustment = 1.f;
+	double scaleAdjustment = 1.f;
 
-	// 0.023355 is a value deduced from scaling down imported DAG
+	// 0.0225 is a value deduced from scaling down imported human male model
 	if (adjust)
-		scaleAdjustment = .023355;
+		scaleAdjustment = .0225;
 
 	if (!count)
 		return;
@@ -96,9 +96,9 @@ void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices
 	for (uint32_t i = 0; i < count; i++)
 	{
 		vertexPos temp = { 0.f };
-		temp.x = ReadFloat(file) * scaleAdjustment;
-		temp.y = ReadFloat(file) * scaleAdjustment;
-		temp.z = ReadFloat(file) * scaleAdjustment;
+		temp.x = (double)ReadFloat(file) * scaleAdjustment;
+		temp.y = (double)ReadFloat(file) * scaleAdjustment;
+		temp.z = (double)ReadFloat(file) * scaleAdjustment;
 
 		vertices->push_back(temp);
 	}
