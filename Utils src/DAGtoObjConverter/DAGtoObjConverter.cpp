@@ -86,9 +86,9 @@ void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices
 {
 	float scaleAdjustment = 1.f;
 
-	// 0.0225 is a value deduced from scaling down imported human male model
+	// 0.023355 is a value deduced from scaling down imported DAG
 	if (adjust)
-		scaleAdjustment = .0225;
+		scaleAdjustment = .023355;
 
 	if (!count)
 		return;
