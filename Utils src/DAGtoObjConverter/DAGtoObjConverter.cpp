@@ -82,7 +82,7 @@ uint32_t ReadTriangleDataPos(FILE* filename)
 	return temp;
 }
 
-void ReadVertexData(FILE* file, uint32_t count, std::unordered_map<uint32_t, vertexPos>* vertices, bool adjust)
+void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices, bool adjust)
 {
 	float scaleAdjustment = 1.f;
 
@@ -100,11 +100,11 @@ void ReadVertexData(FILE* file, uint32_t count, std::unordered_map<uint32_t, ver
 		temp.y = ReadFloat(file) * scaleAdjustment;
 		temp.z = ReadFloat(file) * scaleAdjustment;
 
-		vertices->emplace(std::make_pair(i, temp));
+		vertices->push_back(temp);
 	}
 }
 
-void ReadTriangleData(FILE* file, uint32_t count, std::unordered_map<uint32_t, triangleVertexIndex>* triangles)
+void ReadTriangleData(FILE* file, uint32_t count, std::vector<triangleVertexIndex>* triangles)
 {
 	if (!count)
 		return;
@@ -117,11 +117,11 @@ void ReadTriangleData(FILE* file, uint32_t count, std::unordered_map<uint32_t, t
 		temp.index2 = ReadUInt16(file) + 1;
 		temp.index3 = ReadUInt16(file) + 1;
 
-		triangles->emplace(std::make_pair(i, temp));
+		triangles->push_back(temp);
 	}
 }
 
-void WriteObjFile(FILE* file, std::string filename, std::unordered_map<uint32_t, vertexPos>* vertices, std::unordered_map<uint32_t, triangleVertexIndex>* triangles)
+void WriteObjFile(FILE* file, std::string filename, std::vector<vertexPos>* vertices, std::vector<triangleVertexIndex>* triangles)
 {
 	std::cout << filename << ".obj\n";
 	std::ofstream out(file);
@@ -135,18 +135,14 @@ void WriteObjFile(FILE* file, std::string filename, std::unordered_map<uint32_t,
 	out << "o " << filename << "\n";
 	std::cout << "=";
 	// vertex data
-	for (auto& itr : *vertices)
+	for (vertexPos temp : *vertices)
 	{
-		auto temp = itr.second;
-
 		out << "v " << std::to_string(temp.x) << " " << std::to_string(temp.y) << " " << std::to_string(temp.z) << "\n";
 		std::cout << "=";
 	}
 	// triangle data
-	for (auto& itr : *triangles)
+	for (triangleVertexIndex temp : *triangles)
 	{
-		auto temp = itr.second;
-
 		out << "f " << std::to_string(temp.index1) << " " << std::to_string(temp.index2) << " " << std::to_string(temp.index3) << "\n";
 		std::cout << "=";
 	}
@@ -159,8 +155,6 @@ int main(int argc, char* argv[])
 	std::string pathIn = "in";
 	std::string pathOut = "out";
 	std::vector<std::string> fileList, filenames;
-	std::unordered_map<uint32_t, vertexPos> vertices;
-	std::unordered_map<uint32_t, triangleVertexIndex> triangles;
 	uint32_t fileCount = 0;
 	uint32_t i = 0;
 	uint32_t vCount = 0;
@@ -180,6 +174,9 @@ int main(int argc, char* argv[])
 
 	for (i = 0; i < fileCount; ++i)
 	{
+		std::vector<vertexPos> vertices;
+		std::vector<triangleVertexIndex> triangles;
+
 		FILE* file;
 		const char* tmp = fileList[i].c_str();
 		fopen_s(&file, tmp, "rb");
@@ -193,12 +190,6 @@ int main(int argc, char* argv[])
 		tCount = ReadTriangleCount(file);
 		vDataPos = ReadVertexDataPos(file);
 		tDataPos = ReadTriangleDataPos(file);
-
-		if (vertices.size())
-			vertices.clear();
-
-		if (triangles.size())
-			triangles.clear();
 
 		fseek(file, vDataPos, SEEK_SET);
 		ReadVertexData(file, vCount, &vertices, adjustScale);
