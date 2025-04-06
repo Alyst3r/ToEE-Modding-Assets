@@ -4,6 +4,7 @@
 	Usage: drop DAG files you want to convert to `in` folder next to exe and run (optionally via cmd) exe.
 	If you run via cmd: DAGtoObjConverter.exe [optional]
 	Optional argument can be anything, it signals to the program you want to adjust scale to fit to toee_map_render_template_wip.blend
+	Second optional argument can be anyting as well, makes converted file to use offsets from header of DAG file
 */
 
 #include <iostream>
@@ -82,13 +83,21 @@ uint32_t ReadTriangleDataPos(FILE* filename)
 	return temp;
 }
 
-void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices, bool adjust)
+void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices, bool adjustScale, bool useDAGPos, vertexPos* fileOffsets)
 {
 	double scaleAdjustment = 1.f;
+	vertexPos offset = { 0 };
 
 	// 0.0225 is a value deduced from scaling down imported human male model
-	if (adjust)
+	if (adjustScale)
 		scaleAdjustment = .0225;
+
+	if (useDAGPos)
+	{
+		offset.x = fileOffsets->x;
+		offset.y = fileOffsets->y;
+		offset.z = fileOffsets->z;
+	}
 
 	if (!count)
 		return;
@@ -96,9 +105,9 @@ void ReadVertexData(FILE* file, uint32_t count, std::vector<vertexPos>* vertices
 	for (uint32_t i = 0; i < count; i++)
 	{
 		vertexPos temp = { 0.f };
-		temp.x = (double)ReadFloat(file) * scaleAdjustment;
-		temp.y = (double)ReadFloat(file) * scaleAdjustment;
-		temp.z = (double)ReadFloat(file) * scaleAdjustment;
+		temp.x = ((double)ReadFloat(file) + offset.x) * scaleAdjustment;
+		temp.y = ((double)ReadFloat(file) + offset.y) * scaleAdjustment;
+		temp.z = ((double)ReadFloat(file) + offset.z) * scaleAdjustment;
 
 		vertices->push_back(temp);
 	}
@@ -152,6 +161,7 @@ void WriteObjFile(FILE* file, std::string filename, std::vector<vertexPos>* vert
 int main(int argc, char* argv[])
 {
 	bool adjustScale = false;
+	bool useDAGPosition = false;
 	std::string pathIn = "in";
 	std::string pathOut = "out";
 	std::vector<std::string> fileList, filenames;
@@ -164,6 +174,9 @@ int main(int argc, char* argv[])
 
 	if (argv[1])
 		adjustScale = true;
+
+	if (argv[2])
+		useDAGPosition = true;
 
 	for (const auto& entry : std::filesystem::directory_iterator(pathIn))
 	{
@@ -186,13 +199,19 @@ int main(int argc, char* argv[])
 		const char* tmpName = fName.c_str();
 		fopen_s(&objFile, tmpName, "w+");
 
+		vertexPos fileOffsets = { 0 };
+
+		fileOffsets.x = (double)ReadFloat(file);
+		fileOffsets.y = (double)ReadFloat(file);
+		fileOffsets.z = (double)ReadFloat(file);
+
 		vCount = ReadVertexCount(file);
 		tCount = ReadTriangleCount(file);
 		vDataPos = ReadVertexDataPos(file);
 		tDataPos = ReadTriangleDataPos(file);
 
 		fseek(file, vDataPos, SEEK_SET);
-		ReadVertexData(file, vCount, &vertices, adjustScale);
+		ReadVertexData(file, vCount, &vertices, adjustScale, useDAGPosition, &fileOffsets);
 		fseek(file, tDataPos, SEEK_SET);
 		ReadTriangleData(file, tCount, &triangles);
 		WriteObjFile(objFile, filenames[i], &vertices, &triangles);
