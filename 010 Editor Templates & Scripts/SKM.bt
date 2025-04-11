@@ -1,0 +1,76 @@
+//------------------------------------------------
+//--- 010 Editor v13.0.1 Binary Template
+//
+//      File: ToEESKM.bt
+//   Authors: Aleist3r, based data from XVicious'
+//            Wave2skm source code and Blender
+//            ToEE Import/Export
+//   Version: 1.0
+//   Purpose: 
+//  Category: Game
+// File Mask: .SKM
+//  ID Bytes: 
+//   History: 1.0 - Initial release
+//------------------------------------------------
+typedef struct {
+    char value[48];
+} nameBlock;
+
+struct {
+    uint boneCount <name="Bone Count">;
+    uint boneDataOffset <name="Bone Data Start Offset">;
+    uint materialCount <name="Material Count">;
+    uint materialDataOffset <name="Material Data Start Offset">;
+    uint vertexCount <name="Vertex Count">;
+    uint vertexDataOffset <name="Vertex Data Start Offset">;
+    uint faceCount <name="Face Count">;
+    uint faceDataStartOffset <name="Face Data Start Offset">;
+    char unk[8];
+} objHeader <name="Object Header", fgcolor=0xFFFFFF, bgcolor=0x000000>;
+
+struct {
+    short flags <name="Bone Flags">;
+    short parentBoneID <name="Parent Bone">;
+    nameBlock boneName <name="Bone Name">;
+    struct {
+        struct {
+            float x;
+            float y;
+            float z;
+            float w;
+        } row[3];
+    } matrix <name="3x4 Matrix">;
+} boneData[objHeader.boneCount] <name="Bone Data">;
+
+struct {
+    nameBlock materialFilePath <name="Material File Path">;
+    char data[80];
+} materialData[objHeader.materialCount] <name="Materials">;
+
+struct {
+    struct {
+        float x;
+        float y;
+        float z;
+        float w;
+    } vPos <name="Vertex Position">;
+    struct {
+        float x;
+        float y;
+        float z;
+        float w;
+    } nPos <name="Normal Position">;
+    struct {
+        float x;
+        float y;
+    } uvPos <name="UV Position">;
+    short dummy <name="Dummy?">;
+    short weightCount <name="Number of vertex weights">;
+    short attachmentBoneID[6] <name="Bone ID">;
+    float weights[6] <name="Bone Weights">;
+} modelData[objHeader.vertexCount] <name="Vertex Data">;
+
+struct {
+    short materialID <name="Material">;
+    short vertexIndex[3] <name="Face Vertex Index">;
+} faceVertexIndex[objHeader.faceCount] <name="Face Data">;
