@@ -3,8 +3,9 @@
 //
 //      File: ToEESKM.bt
 //   Authors: Aleist3r, based data from XVicious'
-//            Wave2skm source code and Blender
-//            ToEE Import/Export
+//            Wave2skm source code provided on co8.org
+//            and Blender ToEE Import/Export:
+//            https://github.com/GrognardsFromHell/Blender-ToEE-Import-Export/blob/dirty/SKA_Import/ska.py
 //   Version: 1.0
 //   Purpose: 
 //  Category: Game
