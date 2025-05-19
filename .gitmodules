@@ -1,0 +1,9 @@
+[submodule "Utils src/ToEEModelViewer/libs/glm"]
+	path = Utils src/ToEEModelViewer/libs/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "Utils src/ToEEModelViewer/libs/glfw"]
+	path = Utils src/ToEEModelViewer/libs/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "Utils src/ToEEModelViewer/libs/imgui"]
+	path = Utils src/ToEEModelViewer/libs/imgui
+	url = https://github.com/ocornut/imgui.git

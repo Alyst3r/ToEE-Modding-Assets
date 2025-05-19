@@ -7,3 +7,4 @@ project(DAGTools)
 
 add_subdirectory(DAGHeaderParser)
 add_subdirectory(DAGtoObjConverter)
+add_subdirectory(ToEEModelViewer)
