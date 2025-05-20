@@ -64,21 +64,14 @@ namespace SKM
             maxPos = glm::max(maxPos, pos);
         }
 
-        glm::vec3 size = maxPos - minPos;
+        float min = glm::compMin(minPos);
+        float max = glm::compMax(maxPos);
+        float mult = glm::max(abs(min), max);
 
-        if (minPos.y > 0.0f)
-            minPos.y = 0.0f;
-
-        glm::vec3 center = (minPos + maxPos) * 0.5f;
-        center.y = minPos.y;
-        mesh.modelCenter = center;
-
-        float scale = 1.0f / glm::compMax(maxPos);
+        float scale = 1.0f / mult;
         mesh.modelScale = scale;
 
-        glm::mat4 translate = glm::translate(glm::mat4(1.0f), -center);
-        glm::mat4 uniformScale = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-        mesh.modelMatrix = uniformScale * translate;
+        mesh.modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
         
         mesh.indices.reserve(faces.size() * 3);
         for (const auto& f : faces)

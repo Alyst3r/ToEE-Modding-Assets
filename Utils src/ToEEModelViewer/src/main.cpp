@@ -16,28 +16,33 @@
 #include <Windows.h>
 #endif
 
+#pragma region some global shit that could probably be a part of int main()
+bool geometryHidden = false;
+bool gridShown = false;
+bool showToast = false;
+bool skmLoaded = false;
+bool uniformLighting = false;
+bool wireframeShown = false;
+
+float bgBlue = .3f;
+float bgGreen = .2f;
+float bgRed = .1f;
+float cameraDistance = 1.f;
+float cameraPitch = 0.f;
+float cameraYaw = 0.f;
+float lightPitch = 60.f;
+float lightYaw = 135.f;
+float toastTimer = 0.0f;
+
 int display_w = 1280;
 int display_h = 720;
-SKM::SKMFile skmModel;
-bool skmLoaded = false;
+
 std::string loadedFilePath;
-float toastTimer = 0.0f;
-bool showToast = false;
 std::string toastMessage;
-bool geometryHidden = false;
-bool wireframeShown = false;
-//bool bonesShown = false;
-bool gridShown = false;
-bool uniformLighting = false;
-static float cameraYaw = 0.f;
-static float cameraPitch = 35.f;
-static float cameraDistance = 1.f;
-static float lightYaw = 135.f;
-static float lightPitch = 60.f;
-static float bgRed = .1f;
-static float bgGreen = .2f;
-static float bgBlue = .3f;
+
 Renderer renderer;
+SKM::SKMFile skmModel;
+#pragma endregion
 
 #pragma region Callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -190,6 +195,8 @@ int main()
     {
         glfwPollEvents();
 
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -215,8 +222,6 @@ int main()
         bool wireframeShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false);
         bool hideGeometryClicked = false;
         bool hideGeometryShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_H, false);
-        //bool displayBonesClicked = false;
-        //bool displayBonesShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B, false);
 #pragma endregion
 
 #pragma region MenuBar
@@ -226,8 +231,6 @@ int main()
             {
                 openClicked = ImGui::MenuItem("Open SKM...", "Ctrl+O");
                 reloadClicked = ImGui::MenuItem("Reload SKM", "Ctrl+R", false, skmLoaded);
-                //saveClicked = ImGui::MenuItem("Save SKM", "Ctrl+S");
-                //saveAsClicked = ImGui::MenuItem("Save SKM as..", "Ctrl+Shift+S");
                 closeClicked = ImGui::MenuItem("Close SKM", "Ctrl+W", false, skmLoaded);
                 exitClicked = ImGui::MenuItem("Exit", "Ctrl+Q");
 
@@ -238,7 +241,6 @@ int main()
             {
                 wireframeClicked = ImGui::MenuItem("Show wireframe", "Ctrl+F", wireframeShown);
                 hideGeometryClicked = ImGui::MenuItem("Hide geometry", "Ctrl+H", geometryHidden);
-                //displayBonesClicked = ImGui::MenuItem("Render bones", "Ctrl+B", bonesShown);
 
                 ImGui::EndMenu();
             }
@@ -278,16 +280,6 @@ int main()
             }
         }
 
-        /*if (saveClicked || saveShortcut)
-        {
-
-        }
-
-        if (saveAsClicked || saveAsShortcut)
-        {
-
-        }*/
-
         if (closeClicked || closeShortcut)
         {
             skmModel = SKM::SKMFile();
@@ -311,23 +303,7 @@ int main()
             wireframeShown = !wireframeShown;
             glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
         }
-
-        //if (displayBonesClicked || displayBonesShortcut)
-        //{
-        //    bonesShown = !bonesShown;
-        //}
 #pragma endregion
-
-        /*
-        ImGui::Begin("Debug Info");
-        if (skmLoaded)
-        {
-        }
-        else
-        {
-        }
-        ImGui::End();
-        */
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
 
@@ -375,69 +351,62 @@ int main()
             ImGuiWindowFlags_NoTitleBar
         );
 
-        if (skmLoaded)
+        ImGui::Text("Bones: %d", (uint32_t)skmModel.bones.size());
+        ImGui::Text("Vertices: %d", (uint32_t)skmModel.vertices.size());
+        ImGui::Text("Faces: %d", (uint32_t)skmModel.faces.size());
+        ImGui::Text("Materials: %d", (uint32_t)skmModel.materials.size());
+        ImGui::Text("Animations: NYI");
+        ImGui::Separator();
+        ImGui::Checkbox("Show Grid (Ctrl+G)", &gridShown);
+        ImGui::Text("Pitch");
+        ImGui::SliderFloat("###Pitch", &cameraPitch, -60.f, 60.f);
+        if (ImGui::Button("Set to 0"))
         {
-            ImGui::Text("Bones: %d", (uint32_t)skmModel.bones.size());
-            ImGui::Text("Vertices: %d", (uint32_t)skmModel.vertices.size());
-            ImGui::Text("Faces: %d", (uint32_t)skmModel.faces.size());
-            ImGui::Text("Materials: %d", (uint32_t)skmModel.materials.size());
-            ImGui::Text("Animations: NYI");
-            ImGui::Separator();
-            ImGui::Checkbox("Show Grid (Ctrl+G)", &gridShown);
-            ImGui::Text("Pitch");
-            ImGui::SliderFloat("###Pitch", &cameraPitch, -60.f, 60.f);
-            if (ImGui::Button("Set to 0"))
-            {
-                cameraPitch = 0.f;
-            }
-            ImGui::Text("Rotation");
-            ImGui::SliderFloat("###Yaw", &cameraYaw, -180.f, 180.f);
-            if (ImGui::Button("+90"))
-            {
-                cameraYaw + 90.f > 180.f ? cameraYaw -= 270.f : cameraYaw += 90.f;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("-90"))
-            {
-                cameraYaw - 90.f < -180.f ? cameraYaw += 270.f : cameraYaw -= 90.f;
-            }
-            if (ImGui::Button("Reset Rotation"))
-            {
-                cameraYaw = 0.f;
-                cameraPitch = 35.f;
-            }
-            if (ImGui::Button("Reset Zoom"))
-            {
-                cameraDistance = 1.f;
-            }
-            ImGui::Separator();
-            ImGui::Checkbox("Uniform Lighting", &uniformLighting);
-            ImGui::Text("Light Pitch");
-            ImGui::SliderFloat("###LightPitch", &lightPitch, 0.f, 90.f);
-            ImGui::Text("Light Rotation");
-            ImGui::SliderFloat("###LightYaw", &lightYaw, 0.f, 360.f);
-            if (ImGui::Button("Reset Light"))
-            {
-                lightYaw = 135.f;
-                lightPitch = 60.f;
-            }
-            ImGui::Separator();
-            ImGui::Text("Background Color");
-            ImGui::SliderFloat("R", &bgRed, 0.f, 1.f);
-            ImGui::SliderFloat("G", &bgGreen, 0.f, 1.f);
-            ImGui::SliderFloat("B", &bgBlue, 0.f, 1.f);
-            if (ImGui::Button("Reset Color"))
-            {
-                bgRed = .1f;
-                bgGreen = .2f;
-                bgBlue = .3f;
-            }
-            ImGui::Separator();
+            cameraPitch = 0.f;
         }
-        else
+        ImGui::Text("Rotation");
+        ImGui::SliderFloat("###Yaw", &cameraYaw, -180.f, 180.f);
+        if (ImGui::Button("+90"))
         {
-            ImGui::Text("No SKM loaded.");
+            cameraYaw + 90.f > 180.f ? cameraYaw -= 270.f : cameraYaw += 90.f;
         }
+        ImGui::SameLine();
+        if (ImGui::Button("-90"))
+        {
+            cameraYaw - 90.f < -180.f ? cameraYaw += 270.f : cameraYaw -= 90.f;
+        }
+        if (ImGui::Button("Reset Rotation"))
+        {
+            cameraYaw = 0.f;
+            cameraPitch = 35.f;
+        }
+        if (ImGui::Button("Reset Zoom"))
+        {
+            cameraDistance = 1.f;
+        }
+        ImGui::Separator();
+        ImGui::Checkbox("Uniform Lighting", &uniformLighting);
+        ImGui::Text("Light Pitch");
+        ImGui::SliderFloat("###LightPitch", &lightPitch, 0.f, 90.f);
+        ImGui::Text("Light Rotation");
+        ImGui::SliderFloat("###LightYaw", &lightYaw, 0.f, 360.f);
+        if (ImGui::Button("Reset Light"))
+        {
+            lightYaw = 135.f;
+            lightPitch = 60.f;
+        }
+        ImGui::Separator();
+        ImGui::Text("Background Color");
+        ImGui::SliderFloat("R", &bgRed, 0.f, 1.f);
+        ImGui::SliderFloat("G", &bgGreen, 0.f, 1.f);
+        ImGui::SliderFloat("B", &bgBlue, 0.f, 1.f);
+        if (ImGui::Button("Reset Color"))
+        {
+            bgRed = .1f;
+            bgGreen = .2f;
+            bgBlue = .3f;
+        }
+        ImGui::Separator();
 
         ImGui::End();
 #pragma endregion
@@ -452,7 +421,6 @@ int main()
             }
             else
             {
-                ImGuiViewport* viewport = ImGui::GetMainViewport();
                 ImVec2 toastPos = ImVec2(viewport->Pos.x + 20, viewport->Pos.y + 20);
 
                 ImGui::SetNextWindowBgAlpha(0.8f);
@@ -469,8 +437,6 @@ int main()
             }
         }
 #pragma endregion
-
-        glfwGetFramebufferSize(window, &display_w, &display_h);
 
 #pragma region Camera
         cameraDistance -= io.MouseWheel * 0.1f;
