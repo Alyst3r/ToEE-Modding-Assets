@@ -207,14 +207,10 @@ int main()
         // file
         bool openClicked = false;
         bool reloadClicked = false;
-        bool saveClicked = false;
-        bool saveAsClicked = false;
         bool closeClicked = false;
         bool exitClicked = false;
         bool openShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false);
         bool reloadShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_R, false);
-        bool saveShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false);
-        bool saveAsShortcut = io.KeyCtrl && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_O, false);
         bool closeShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_W, false) && skmLoaded;
         bool exitShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q, false);
         // options
@@ -486,6 +482,8 @@ int main()
 
         glfwSwapBuffers(window);
     }
+
+    renderer.shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

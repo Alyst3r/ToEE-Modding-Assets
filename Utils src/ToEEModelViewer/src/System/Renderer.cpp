@@ -49,7 +49,6 @@ void Renderer::initialize()
         out vec4 FragColor;
 
         uniform vec3 lightDir;
-        uniform vec3 lightColor = vec3(1.0);
         uniform vec3 baseColor = vec3(0.8, 0.8, 0.8);
         uniform bool uniformLight;
 
@@ -57,7 +56,7 @@ void Renderer::initialize()
             float diff = uniformLight ? 1.0 : max(dot(normalize(Normal), -lightDir), 0.0);
 
             vec3 ambient = 0.1 * baseColor;
-            vec3 result = ambient + baseColor * diff * lightColor;
+            vec3 result = ambient + baseColor * diff * vec3(1.0);
             FragColor = vec4(result, 1.0);
         }
     )GLSL";
