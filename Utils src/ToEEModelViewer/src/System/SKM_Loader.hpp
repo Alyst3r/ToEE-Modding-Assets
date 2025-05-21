@@ -70,7 +70,8 @@ namespace SKM
     };
 #pragma pack(pop)
 
-    struct GPUVertex {
+    struct GPUVertex
+    {
         glm::vec3 position;
         glm::vec2 uv;
         glm::vec3 normal;
@@ -95,18 +96,19 @@ namespace SKM
         void destroy();
     };
 
-	struct SKMFile
-	{
+    struct SKMFile
+    {
         Header header = { 0 };
         std::vector<BoneData> bones;
-        std::vector<MaterialData> materials;
+        std::vector<std::string> materials;
         std::vector<VertexData> vertices;
         std::vector<FaceData> faces;
 
-		bool loadFromFile(const std::string& path);
+        bool loadFromFile(const std::string& path);
 
+        std::string skmFilename;
         MeshBuffer toMesh();
-	};
+    };
 
     glm::mat4 toMat(const SKM::Matrix3x4& matrix);
 }

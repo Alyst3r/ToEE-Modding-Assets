@@ -12,15 +12,12 @@ Logger logger;
 
 Logger::Logger()
 {
-#ifndef NDEBUG
     m_file.open("log.txt", std::ios::out);
-#endif
 }
 
 static bool isFirst = true;
 Logger& log(const char* type, const char* file, size_t line)
 {
-#ifndef NDEBUG
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
 
@@ -32,8 +29,12 @@ Logger& log(const char* type, const char* file, size_t line)
     {
         logger << "\n";
     }
+#ifndef NDEBUG
     logger << "[" << type << "][" << std::put_time(&tm, "%H:%M:%S") << "][" << relProjectPath(file) << ":" << line << "] ";
+#else
+    logger << "[" << type << "][" << std::put_time(&tm, "%H:%M:%S") << "] ";
 #endif
+
     return logger;
 }
 

@@ -12,10 +12,12 @@ namespace SKM
 {
     bool SKMFile::loadFromFile(const std::string& path)
     {
+        skmFilename = path.substr(path.find_last_of("/\\") + 1);
+
         std::ifstream file(path, std::ios::binary);
         if (!file)
         {
-            std::cerr << "[SKM] Failed to open file: " << path << "\n";
+            LOG_ERROR << "[SKM] Failed to open file: " << path << "\n";
             return false;
         }
 
@@ -23,7 +25,7 @@ namespace SKM
 
         if (!file)
         {
-            std::cerr << "[SKM] Failed to read header.\n";
+            LOG_ERROR << "[SKM] Failed to read header.\n";
             return false;
         }
 
@@ -32,8 +34,14 @@ namespace SKM
         file.read(reinterpret_cast<char*>(bones.data()), bones.size() * sizeof(BoneData));
 
         file.seekg(header.materialDataOffset);
+        std::vector<MaterialData> materialTemp(header.materialCount);
         materials.resize(header.materialCount);
-        file.read(reinterpret_cast<char*>(materials.data()), materials.size() * sizeof(MaterialData));
+        file.read(reinterpret_cast<char*>(materialTemp.data()), materialTemp.size() * sizeof(MaterialData));
+        for (uint32_t i = 0; i < header.materialCount; i++)
+        {
+            std::string temp = materialTemp[i].materialFilePath;
+            materials.emplace_back(temp);
+        }
 
         file.seekg(header.vertexDataOffset);
         vertices.resize(header.vertexCount);
@@ -86,6 +94,18 @@ namespace SKM
         {
             glm::mat4 tempMatrix = toMat(b.worldInverse);
             tempMatrix = glm::inverse(tempMatrix);
+
+#ifndef NDEBUG
+            LOG_DEBUG << "===============SKM to render data================";
+            LOG_DEBUG << "Current bone: " << b.boneName;
+            b.parentBone > -1 ? LOG_DEBUG << "Parent: " << bones[b.parentBone].boneName : LOG_DEBUG << "Parent: " << "None";
+            LOG_DEBUG << "[";
+            LOG_DEBUG << tempMatrix[0][0] << " " << tempMatrix[0][1] << " " << tempMatrix[0][2] << " " << tempMatrix[0][3];
+            LOG_DEBUG << tempMatrix[1][0] << " " << tempMatrix[1][1] << " " << tempMatrix[1][2] << " " << tempMatrix[1][3];
+            LOG_DEBUG << tempMatrix[2][0] << " " << tempMatrix[2][1] << " " << tempMatrix[2][2] << " " << tempMatrix[2][3];
+            LOG_DEBUG << tempMatrix[3][0] << " " << tempMatrix[3][1] << " " << tempMatrix[3][2] << " " << tempMatrix[3][3];
+            LOG_DEBUG << "]";
+#endif
 
             glm::vec3 temp = glm::vec3(tempMatrix[3][0] * scale, tempMatrix[3][1] * scale, tempMatrix[3][2] * scale);
             mesh.bonePositions.emplace_back(temp);
