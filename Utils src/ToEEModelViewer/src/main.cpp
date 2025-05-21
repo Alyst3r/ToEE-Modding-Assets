@@ -1,3 +1,4 @@
+#include "System/Logger.hpp"
 #include "System/Renderer.hpp"
 #include "System/SKM_Loader.hpp"
 
@@ -19,6 +20,7 @@
 #pragma region some global shit that could probably be a part of int main()
 bool geometryHidden = false;
 bool gridShown = false;
+bool renderBones = false;
 bool showToast = false;
 bool skmLoaded = false;
 bool uniformLighting = false;
@@ -27,6 +29,7 @@ bool wireframeShown = false;
 float bgBlue = .3f;
 float bgGreen = .2f;
 float bgRed = .1f;
+float boneScaleFactor = 1.f;
 float cameraDistance = 1.f;
 float cameraPitch = 0.f;
 float cameraYaw = 0.f;
@@ -218,6 +221,8 @@ int main()
         bool wireframeShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false);
         bool hideGeometryClicked = false;
         bool hideGeometryShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_H, false);
+        bool renderBonesClicked = false;
+        bool renderBonesShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B, false);
 #pragma endregion
 
 #pragma region MenuBar
@@ -237,6 +242,7 @@ int main()
             {
                 wireframeClicked = ImGui::MenuItem("Show wireframe", "Ctrl+F", wireframeShown);
                 hideGeometryClicked = ImGui::MenuItem("Hide geometry", "Ctrl+H", geometryHidden);
+                renderBonesClicked = ImGui::MenuItem("Render bones", "Ctrl+B", renderBones);
 
                 ImGui::EndMenu();
             }
@@ -298,6 +304,11 @@ int main()
         {
             wireframeShown = !wireframeShown;
             glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
+        }
+
+        if (renderBonesClicked || renderBonesShortcut)
+        {
+            renderBones = !renderBones;
         }
 #pragma endregion
 
@@ -403,7 +414,8 @@ int main()
             bgBlue = .3f;
         }
         ImGui::Separator();
-
+        ImGui::Text("Bone Scale");
+        ImGui::SliderFloat("###BoneScale", &boneScaleFactor, .5f, 4.f, "%.3f", ImGuiSliderFlags_Logarithmic);
         ImGui::End();
 #pragma endregion
 
@@ -476,6 +488,9 @@ int main()
 
         if (!geometryHidden)
             renderer.render(view, proj, lightDir, uniformLighting);
+
+        if (renderBones && skmLoaded)
+            renderer.renderBones(view, proj, boneScaleFactor);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

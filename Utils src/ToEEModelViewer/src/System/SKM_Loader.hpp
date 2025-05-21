@@ -44,7 +44,7 @@ namespace SKM
         uint16_t flags;
         int16_t parentBone;
         char boneName[48];
-        Matrix3x4 transforms;
+        Matrix3x4 worldInverse;
     };
 
     struct MaterialData
@@ -80,6 +80,7 @@ namespace SKM
     {
         std::vector<GPUVertex> vertices;
         std::vector<uint32_t> indices;
+        std::vector<glm::vec3> bonePositions;
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::vec3 modelCenter = glm::vec3(0.0f);
@@ -106,4 +107,6 @@ namespace SKM
 
         MeshBuffer toMesh();
 	};
+
+    glm::mat4 toMat(const SKM::Matrix3x4& matrix);
 }

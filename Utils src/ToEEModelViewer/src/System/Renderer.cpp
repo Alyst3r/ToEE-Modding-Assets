@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include "Renderer.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -114,6 +115,45 @@ void Renderer::initialize()
 
     glDeleteShader(gridVertexShader);
     glDeleteShader(gridFragmentShader);
+
+    // bone shader
+    const char* boneVertSrc = R"GLSL(
+        #version 330 core
+        layout(location = 0) in vec3 aPos;
+
+        uniform mat4 view;
+        uniform mat4 projection;
+
+        void main() {
+            gl_Position = projection * view * vec4(aPos, 1.0);
+        }
+    )GLSL";
+
+    const char* boneFragSrc = R"GLSL(
+        #version 330 core
+        out vec4 FragColor;
+        uniform vec3 color;
+
+        void main() {
+            FragColor = vec4(color, 1.0);
+        }
+    )GLSL";
+
+    GLuint boneVertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(boneVertexShader, 1, &boneVertSrc, nullptr);
+    glCompileShader(boneVertexShader);
+
+    GLuint boneFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(boneFragmentShader, 1, &boneFragSrc, nullptr);
+    glCompileShader(boneFragmentShader);
+
+    boneShaderProgram = glCreateProgram();
+    glAttachShader(boneShaderProgram, boneVertexShader);
+    glAttachShader(boneShaderProgram, boneFragmentShader);
+    glLinkProgram(boneShaderProgram);
+
+    glDeleteShader(boneVertexShader);
+    glDeleteShader(boneFragmentShader);
 }
 
 void Renderer::shutdown()
@@ -159,7 +199,7 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
     glBindVertexArray(0);
 }
 
-void Renderer::renderGrid(const glm::mat4& view, const glm::mat4& projection)
+void Renderer::renderGrid(const glm::mat4& view, const glm::mat4& projection) const
 {
     glUseProgram(gridShaderProgram);
 
@@ -197,4 +237,50 @@ void Renderer::renderGrid(const glm::mat4& view, const glm::mat4& projection)
     glBindVertexArray(0);
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
+}
+
+void Renderer::renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor)
+{
+    glUseProgram(boneShaderProgram);
+
+    glUniformMatrix4fv(glGetUniformLocation(boneShaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(boneShaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
+
+    for (const auto& bonePos : mesh.bonePositions)
+    {
+        float factor = 2.f * mesh.modelScale * scaleFactor;
+        glm::vec3 minX = bonePos - (glm::vec3(1.f, 0.f, 0.f) * factor);
+        glm::vec3 maxX = bonePos + (glm::vec3(1.f, 0.f, 0.f) * factor);
+        glm::vec3 minY = bonePos - (glm::vec3(0.f, 1.f, 0.f) * factor);
+        glm::vec3 maxY = bonePos + (glm::vec3(0.f, 1.f, 0.f) * factor);
+        glm::vec3 minZ = bonePos - (glm::vec3(0.f, 0.f, 1.f) * factor);
+        glm::vec3 maxZ = bonePos + (glm::vec3(0.f, 0.f, 1.f) * factor);
+        glm::vec3 data[6] = { minX, maxX, minY, maxY, minZ, maxZ };
+        glm::vec3 colors[3] = {
+            glm::vec3(1.f, 0, 0),
+            glm::vec3(0, 1.f, 0),
+            glm::vec3(0, 0, 1.f)
+        };
+
+        GLuint vao, vbo;
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+       
+        for (int i = 0; i < 3; ++i)
+        {
+            glUniform3f(glGetUniformLocation(boneShaderProgram, "color"), colors[i].x, colors[i].y, colors[i].z);
+            glDrawArrays(GL_LINES, i * 2, 2);
+        }
+
+        glBindVertexArray(0);
+        glDeleteBuffers(1, &vbo);
+        glDeleteVertexArrays(1, &vao);
+    }
 }

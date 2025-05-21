@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include "SKM_Loader.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -53,11 +54,11 @@ namespace SKM
         mesh.vertices.reserve(vertices.size());
         for (const auto& v : vertices)
         {
-            GPUVertex out;
+            GPUVertex out = {};
             out.position = glm::vec3(v.vertexPosition.x, v.vertexPosition.y, v.vertexPosition.z);
             out.uv = glm::vec2(v.uvPosition.x, v.uvPosition.y);
             out.normal = glm::vec3(v.normals.x, v.normals.y, v.normals.z);
-            mesh.vertices.push_back(out);
+            mesh.vertices.emplace_back(out);
 
             glm::vec3 pos(v.vertexPosition.x, v.vertexPosition.y, v.vertexPosition.z);
             minPos = glm::min(minPos, pos);
@@ -70,15 +71,24 @@ namespace SKM
 
         float scale = 1.0f / mult;
         mesh.modelScale = scale;
-
         mesh.modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-        
+
         mesh.indices.reserve(faces.size() * 3);
         for (const auto& f : faces)
         {
-            mesh.indices.push_back(f.vertexIndex[0]);
-            mesh.indices.push_back(f.vertexIndex[1]);
-            mesh.indices.push_back(f.vertexIndex[2]);
+            mesh.indices.emplace_back(f.vertexIndex[0]);
+            mesh.indices.emplace_back(f.vertexIndex[1]);
+            mesh.indices.emplace_back(f.vertexIndex[2]);
+        }
+
+        mesh.bonePositions.reserve(bones.size());
+        for (const auto& b : bones)
+        {
+            glm::mat4 tempMatrix = toMat(b.worldInverse);
+            tempMatrix = glm::inverse(tempMatrix);
+
+            glm::vec3 temp = glm::vec3(tempMatrix[3][0] * scale, tempMatrix[3][1] * scale, tempMatrix[3][2] * scale);
+            mesh.bonePositions.emplace_back(temp);
         }
 
         return mesh;
@@ -122,5 +132,19 @@ namespace SKM
             glDeleteBuffers(1, &ebo);
 
         vao = vbo = ebo = 0;
+    }
+
+    glm::mat4 toMat(const SKM::Matrix3x4& matrix)
+    {
+        //std::cout << matrix.rows[0].x << " " << matrix.rows[0].y << " " << matrix.rows[0].z << " " << matrix.rows[0].w << "\n";
+        //std::cout << matrix.rows[1].x << " " << matrix.rows[1].y << " " << matrix.rows[1].z << " " << matrix.rows[1].w << "\n";
+        //std::cout << matrix.rows[2].x << " " << matrix.rows[2].y << " " << matrix.rows[2].z << " " << matrix.rows[2].w << "\n";
+
+        return glm::mat4(
+            matrix.rows[0].x, matrix.rows[1].x, matrix.rows[2].x, 0.f,
+            matrix.rows[0].y, matrix.rows[1].y, matrix.rows[2].y, 0.f,
+            matrix.rows[0].z, matrix.rows[1].z, matrix.rows[2].z, 0.f,
+            matrix.rows[0].w, matrix.rows[1].w, matrix.rows[2].w, 1.f
+        );
     }
 }
