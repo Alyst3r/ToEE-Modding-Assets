@@ -40,7 +40,7 @@ float toastTimer = 0.0f;
 int display_w = 1280;
 int display_h = 720;
 
-glm::vec3 target = glm::vec3(0.f, 0.f, 0.f);
+glm::vec3 target = glm::vec3(0.f);
 
 std::string loadedFilePath;
 std::string toastMessage;
@@ -219,6 +219,13 @@ int main()
         ImGui::NewFrame();
 
         ImGuiIO& io = ImGui::GetIO();
+        static ImVec2 lastMousePos = io.MousePos;
+        ImVec2 currentMousePos = io.MousePos;
+        ImVec2 mouseDelta = ImVec2(currentMousePos.x - lastMousePos.x, currentMousePos.y - lastMousePos.y);
+        lastMousePos = currentMousePos;
+
+        bool shiftHeld = io.KeyShift;
+        bool middleMouseHeld = io.MouseDown[2];
 
 #pragma region MenuOptionBools
         // file
@@ -405,6 +412,10 @@ int main()
         {
             cameraDistance = 1.f;
         }
+        if (ImGui::Button("Reset Panning"))
+        {
+            target = glm::vec3(0.f);
+        }
         ImGui::Separator();
         ImGui::Checkbox("Uniform Lighting", &uniformLighting);
         ImGui::Text("Light Pitch");
@@ -469,7 +480,7 @@ int main()
         float yawRad = glm::radians(cameraYaw);
         float pitchRad = glm::radians(cameraPitch);
 
-        float radius = 10.f;
+        float radius = 100.f;
 
         float x = radius * cos(pitchRad) * sin(yawRad);
         float y = radius * sin(pitchRad);
@@ -478,6 +489,21 @@ int main()
         glm::vec3 cameraPos = target + glm::vec3(x, y, z);
         glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::ortho(-1.f * aspectRatio * cameraDistance, 1.f * aspectRatio * cameraDistance, -1.f * cameraDistance, 1.f * cameraDistance, .1f, 10000.f);
+
+#pragma region panning
+        glm::vec3 forward = glm::normalize(target - cameraPos);
+        glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.f, 1.f, 0.f)));
+        glm::vec3 up = glm::normalize(glm::cross(right, forward));
+
+        if (shiftHeld && middleMouseHeld)
+        {
+            float panSpeed = -0.00275f * cameraDistance;
+            glm::vec2 delta(mouseDelta.x, -mouseDelta.y);
+            glm::vec3 worldDelta = right * delta.x * panSpeed + up * delta.y * panSpeed;
+
+            target += worldDelta;
+        }
+#pragma endregion
 #pragma endregion
 
         glViewport(0, 0, display_w, display_h);
