@@ -156,10 +156,6 @@ namespace SKM
 
     glm::mat4 toMat(const SKM::Matrix3x4& matrix)
     {
-        //std::cout << matrix.rows[0].x << " " << matrix.rows[0].y << " " << matrix.rows[0].z << " " << matrix.rows[0].w << "\n";
-        //std::cout << matrix.rows[1].x << " " << matrix.rows[1].y << " " << matrix.rows[1].z << " " << matrix.rows[1].w << "\n";
-        //std::cout << matrix.rows[2].x << " " << matrix.rows[2].y << " " << matrix.rows[2].z << " " << matrix.rows[2].w << "\n";
-
         return glm::mat4(
             matrix.rows[0].x, matrix.rows[1].x, matrix.rows[2].x, 0.f,
             matrix.rows[0].y, matrix.rows[1].y, matrix.rows[2].y, 0.f,

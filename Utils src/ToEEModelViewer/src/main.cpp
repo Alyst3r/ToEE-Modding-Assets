@@ -40,6 +40,8 @@ float toastTimer = 0.0f;
 int display_w = 1280;
 int display_h = 720;
 
+glm::vec3 target = glm::vec3(0.f, 0.f, 0.f);
+
 std::string loadedFilePath;
 std::string toastMessage;
 
@@ -83,6 +85,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                     cameraYaw = 90.f;
                 }
                 break;
+            case GLFW_KEY_KP_7:
+                if (mods & GLFW_MOD_CONTROL)
+                {
+                    cameraPitch = -89.999f;
+                    cameraYaw = 0.f;
+                }
+                else
+                {
+                    cameraPitch = 89.999f;
+                    cameraYaw = 0.f;
+                }
+                break;
             case GLFW_KEY_G:
                 if (mods & GLFW_MOD_CONTROL)
                 {
@@ -99,13 +113,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         switch (key)
         {
             case GLFW_KEY_KP_2:
-                if (cameraPitch - 15.f > -60.f)
+                if (cameraPitch - 15.f > -89.999f)
                 {
                     cameraPitch -= 15.f;
                 }
                 else
                 {
-                    cameraPitch = -60.f;
+                    cameraPitch = -89.999f;
                 }
                 break;
             case GLFW_KEY_KP_4:
@@ -129,13 +143,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 }
                 break;
             case GLFW_KEY_KP_8:
-                if (cameraPitch + 15.f < 60.f)
+                if (cameraPitch + 15.f < 89.999f)
                 {
                     cameraPitch += 15.f;
                 }
                 else
                 {
-                    cameraPitch = 60.f;
+                    cameraPitch = 89.999f;
                 }
                 break;
             default:
@@ -366,7 +380,7 @@ int main()
         ImGui::Separator();
         ImGui::Checkbox("Show Grid (Ctrl+G)", &gridShown);
         ImGui::Text("Pitch");
-        ImGui::SliderFloat("###Pitch", &cameraPitch, -60.f, 60.f);
+        ImGui::SliderFloat("###Pitch", &cameraPitch, -89.999f, 89.999f);
         if (ImGui::Button("Set to 0"))
         {
             cameraPitch = 0.f;
@@ -385,7 +399,7 @@ int main()
         if (ImGui::Button("Reset Rotation"))
         {
             cameraYaw = 0.f;
-            cameraPitch = 35.f;
+            cameraPitch = 0.f;
         }
         if (ImGui::Button("Reset Zoom"))
         {
@@ -461,9 +475,7 @@ int main()
         float y = radius * sin(pitchRad);
         float z = radius * cos(pitchRad) * cos(yawRad);
 
-        glm::vec3 target = glm::vec3(0.f, .5f, 0.f);
         glm::vec3 cameraPos = target + glm::vec3(x, y, z);
-
         glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::ortho(-1.f * aspectRatio * cameraDistance, 1.f * aspectRatio * cameraDistance, -1.f * cameraDistance, 1.f * cameraDistance, .1f, 10000.f);
 #pragma endregion
