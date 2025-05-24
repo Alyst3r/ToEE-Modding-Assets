@@ -59,7 +59,7 @@ namespace SKM
         for (uint32_t i = 0; i < header.materialCount; i++)
         {
             std::string temp = materialTemp[i].materialFilePath;
-            materials.emplace_back(temp);
+            materials[i] = materialTemp[i].materialFilePath;
         }
 
         file.seekg(header.vertexDataOffset);
@@ -96,6 +96,8 @@ namespace SKM
             }
         }
 
+        loadMaterials();
+
         loaded = true;
 
         return true;
@@ -112,6 +114,8 @@ namespace SKM
         skmInverseWorldMatrices.resize(0);
         skmWorldMatrices.resize(0);
         loaded = false;
+        animation.clear();
+        materialData.resize(0);
     }
 
     MeshBuffer SKMFile::toMesh()
@@ -212,6 +216,11 @@ namespace SKM
         mesh.skmWorldMatrices.resize(skmWorldMatrices.size());
         mesh.skmWorldMatrices = skmWorldMatrices;
 
+        mesh.materialData.resize(materialData.size());
+        mesh.materialData = materialData;
+
+        mesh.loadTextures();
+
         return mesh;
     }
 
@@ -270,8 +279,25 @@ namespace SKM
         skinningMatrix.resize(0);
         tPoseSkinningMatrix.resize(0);
 
+        materialData.resize(0);
+        textureCache.clear();
+
         modelMatrix = glm::mat4(1.0f);
         modelCenter = glm::vec3(0.0f);
+    }
+
+    void MeshBuffer::loadTextures()
+    {
+        for (size_t i = 0; i < materialData.size(); i++)
+        {
+            for (int j = 0; j < materialData[i].textureCount; j++)
+            {
+                TGA::getOrLoadTexture(materialData[i].texturePath[j], textureCache);
+            }
+
+            if (materialData[i].glossMap.length())
+                TGA::getOrLoadTexture(materialData[i].glossMap, textureCache);
+        }
     }
 
     glm::mat4 toMat(const SKM::Matrix3x4& matrix)
@@ -287,5 +313,22 @@ namespace SKM
     bool SKMFile::loadAnimation(const std::string& path)
     {
         return animation.loadFromFile(path);
+    }
+
+    void SKMFile::loadMaterials()
+    {
+        materialData.resize(header.materialCount);
+
+        for (size_t i = 0; i < materialData.size(); i++)
+        {
+            if (!materialData[i].parseMDFFile(rootPath, materials[i]))
+            {
+                LOG_ERROR << "Failed to parse material file: " << materials[i];
+            }
+
+#ifndef NDEBUG
+            materialData[i].debugPrint();
+#endif
+        }
     }
 }

@@ -1,6 +1,8 @@
 #pragma once
 
+#include "MDF_Loader.hpp"
 #include "SKA_Loader.hpp"
+#include "TGA_Loader.hpp"
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -75,9 +77,9 @@ namespace SKM
 
     struct GPUVertex
     {
-        glm::vec3 position;
-        glm::vec2 uv;
-        glm::vec3 normal;
+        glm::vec3 position = glm::vec3(0.f);
+        glm::vec2 uv = glm::vec2(0.f);
+        glm::vec3 normal = glm::vec3(0.f);
 
         glm::uvec4 boneIDs = glm::uvec4(0);
         glm::vec4 boneWeights = glm::vec4(0.0f);
@@ -93,6 +95,9 @@ namespace SKM
         std::vector<glm::mat4> skinningMatrix;
         std::vector<glm::mat4> tPoseSkinningMatrix;
 
+        std::vector<MDF::MDFFile> materialData;
+        std::unordered_map<std::string, TGA::TGAImage> textureCache;
+
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::vec3 modelCenter = glm::vec3(0.0f);
 
@@ -102,6 +107,8 @@ namespace SKM
 
         void upload();
         void destroy();
+
+        void loadTextures();
     };
 
     struct SKMFile
@@ -125,10 +132,11 @@ namespace SKM
 
         bool loadAnimation(const std::string& path);
         bool loadFromFile(const std::string& path);
+        void loadMaterials();
 
         MeshBuffer toMesh();
-
         SKA::SKAFile animation;
+        std::vector<MDF::MDFFile> materialData;
     };
 
     glm::mat4 toMat(const SKM::Matrix3x4& matrix);
