@@ -1,3 +1,4 @@
+#include "System/Camera.hpp"
 #include "System/Logger.hpp"
 #include "System/Renderer.hpp"
 #include "System/SKM_Loader.hpp"
@@ -18,6 +19,9 @@
 #endif
 
 #pragma region some global shit that could probably be a part of int main()
+bool boneAxesShown = false;
+bool boneOctahedronsShown = true;
+bool cameraAsLightSource = false;
 bool geometryHidden = false;
 bool gridShown = false;
 bool renderBones = false;
@@ -30,21 +34,17 @@ float bgBlue = .3f;
 float bgGreen = .2f;
 float bgRed = .1f;
 float boneScaleFactor = 1.f;
-float cameraDistance = 1.f;
-float cameraPitch = 0.f;
-float cameraYaw = 0.f;
-float lightPitch = 60.f;
-float lightYaw = 135.f;
+float lightPitch = 35.f;
+float lightYaw = 35.f;
 float toastTimer = 0.0f;
 
 int display_w = 1280;
 int display_h = 720;
 
-glm::vec3 target = glm::vec3(0.f);
-
 std::string loadedFilePath;
 std::string toastMessage;
 
+Camera camera;
 Renderer renderer;
 SKM::SKMFile skmModel;
 #pragma endregion
@@ -62,40 +62,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         switch (key)
         {
             case GLFW_KEY_KP_1:
-                if (mods & GLFW_MOD_CONTROL)
-                {
-                    cameraPitch = 0.f;
-                    cameraYaw = 180.f;
-                }
-                else
-                {
-                    cameraPitch = 0.f;
-                    cameraYaw = 0.f;
-                }
+                camera.setEulerAngles(mods & GLFW_MOD_CONTROL ? 180.f : 0.f, 0.f);
                 break;
             case GLFW_KEY_KP_3:
-                if (mods & GLFW_MOD_CONTROL)
-                {
-                    cameraPitch = 0.f;
-                    cameraYaw = -90.f;
-                }
-                else
-                {
-                    cameraPitch = 0.f;
-                    cameraYaw = 90.f;
-                }
+                camera.setEulerAngles(mods & GLFW_MOD_CONTROL ? -90.f : 90.f, 0.f);
                 break;
             case GLFW_KEY_KP_7:
-                if (mods & GLFW_MOD_CONTROL)
-                {
-                    cameraPitch = -89.999f;
-                    cameraYaw = 0.f;
-                }
-                else
-                {
-                    cameraPitch = 89.999f;
-                    cameraYaw = 0.f;
-                }
+                camera.setEulerAngles(0.f, mods & GLFW_MOD_CONTROL ? 89.999f : -89.999f);
                 break;
             case GLFW_KEY_G:
                 if (mods & GLFW_MOD_CONTROL)
@@ -113,44 +86,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         switch (key)
         {
             case GLFW_KEY_KP_2:
-                if (cameraPitch - 15.f > -89.999f)
-                {
-                    cameraPitch -= 15.f;
-                }
-                else
-                {
-                    cameraPitch = -89.999f;
-                }
+                camera.adjustEulerAngles(0.f, -15.f);
                 break;
             case GLFW_KEY_KP_4:
-                if (cameraYaw - 15.f >= - 180.f)
-                {
-                    cameraYaw -= 15.f;
-                }
-                else
-                {
-                    cameraYaw = cameraYaw + 345.f;
-                }
+                camera.adjustEulerAngles(-15.f, 0.f);
                 break;
             case GLFW_KEY_KP_6:
-                if (cameraYaw + 15.f <= 180.f)
-                {
-                    cameraYaw += 15.f;
-                }
-                else
-                {
-                    cameraYaw = cameraYaw - 345.f;
-                }
+                camera.adjustEulerAngles(15.f, 0.f);
                 break;
             case GLFW_KEY_KP_8:
-                if (cameraPitch + 15.f < 89.999f)
-                {
-                    cameraPitch += 15.f;
-                }
-                else
-                {
-                    cameraPitch = 89.999f;
-                }
+                camera.adjustEulerAngles(0.f, 15.f);
                 break;
             default:
                 break;
@@ -239,11 +184,13 @@ int main()
         bool exitShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q, false);
         // options
         bool wireframeClicked = false;
-        bool wireframeShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false);
         bool hideGeometryClicked = false;
-        bool hideGeometryShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_H, false);
         bool renderBonesClicked = false;
+        bool centerOnModelClicked = false;
+        bool wireframeShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false);
+        bool hideGeometryShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_H, false);
         bool renderBonesShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B, false);
+        bool centerOnModelShortcut = io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_C, false);
 #pragma endregion
 
 #pragma region MenuBar
@@ -264,6 +211,7 @@ int main()
                 wireframeClicked = ImGui::MenuItem("Show wireframe", "Ctrl+F", wireframeShown);
                 hideGeometryClicked = ImGui::MenuItem("Hide geometry", "Ctrl+H", geometryHidden);
                 renderBonesClicked = ImGui::MenuItem("Render bones", "Ctrl+B", renderBones);
+                centerOnModelClicked = ImGui::MenuItem("Center on model", "Shift+C");
 
                 ImGui::EndMenu();
             }
@@ -277,10 +225,21 @@ int main()
         if (openClicked || openShortcut)
         {
             const char* filter[] = { "*.SKM" };
-            const char* filePath = tinyfd_openFileDialog("Open SKM File", "", 1, filter, "SKM files", 0);
+            const char* temp = tinyfd_openFileDialog("Open SKM File", "", 1, filter, "*.SKM", 0);
 
-            if (filePath)
+            std::string filePath;
+
+            if (temp)
             {
+                filePath = temp;
+                std::replace(filePath.begin(), filePath.end(), '\\', '/');
+            }
+
+            if (filePath.length())
+            {
+                if (skmModel.loaded)
+                    skmModel.clear();
+
                 if (skmModel.loadFromFile(filePath))
                 {
                     renderer.uploadMesh(skmModel.toMesh());
@@ -292,10 +251,12 @@ int main()
 
         if (reloadClicked || reloadShortcut)
         {
+            if (skmModel.loaded)
+                skmModel.clear();
+
             if (skmModel.loadFromFile(loadedFilePath))
             {
                 skmLoaded = true;
-                renderer.clearMesh();
                 renderer.uploadMesh(skmModel.toMesh());
                 toastMessage = "Reloaded SKM file";
                 toastTimer = 3.0f;
@@ -324,12 +285,16 @@ int main()
         if (wireframeClicked || wireframeShortcut)
         {
             wireframeShown = !wireframeShown;
-            glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
         }
 
         if (renderBonesClicked || renderBonesShortcut)
         {
             renderBones = !renderBones;
+        }
+
+        if (centerOnModelClicked || centerOnModelShortcut)
+        {
+            camera.setTarget(renderer.getModelCenter());
         }
 #pragma endregion
 
@@ -362,8 +327,8 @@ int main()
         ImGui::PopStyleVar(3);
 #pragma endregion
 
-#pragma region Side_panel
-        const float panelWidth = 160.0f;
+#pragma region Side_panel_right
+        const float panelWidth = 200.0f;
         const float menuBarHeight = ImGui::GetFrameHeight();
 
         float panelHeight = viewport->Size.y - menuBarHeight - statusBarHeight;
@@ -385,60 +350,76 @@ int main()
         ImGui::Text("Materials: %d", (uint32_t)skmModel.materials.size());
         ImGui::Text("Animations: NYI");
         ImGui::Separator();
-        ImGui::Checkbox("Show Grid (Ctrl+G)", &gridShown);
+        ImGui::Checkbox("Show grid (Ctrl+G)", &gridShown);
+
+#pragma region camera_stuff
+        glm::vec2 angles = camera.getEulerAnglesDeg();
+        float pitch = angles.y;
+        float yaw = angles.x;
+
         ImGui::Text("Pitch");
-        ImGui::SliderFloat("###Pitch", &cameraPitch, -89.999f, 89.999f);
+        bool pitchChanged = ImGui::SliderFloat("###Pitch", &pitch, -89.999f, 89.999f);
         if (ImGui::Button("Set to 0"))
         {
-            cameraPitch = 0.f;
+            pitch = 0.f;
+            pitchChanged = true;
         }
         ImGui::Text("Rotation");
-        ImGui::SliderFloat("###Yaw", &cameraYaw, -180.f, 180.f);
+        bool yawChanged = ImGui::SliderFloat("###Yaw", &yaw, -180.f, 180.f);
         if (ImGui::Button("+90"))
         {
-            cameraYaw + 90.f > 180.f ? cameraYaw -= 270.f : cameraYaw += 90.f;
+            yaw = (yaw + 90.f > 180.f) ? yaw - 270.f : yaw + 90.f;
+            yawChanged = true;
         }
         ImGui::SameLine();
         if (ImGui::Button("-90"))
         {
-            cameraYaw - 90.f < -180.f ? cameraYaw += 270.f : cameraYaw -= 90.f;
+            yaw = (yaw - 90.f < -180.f) ? yaw + 270.f : yaw - 90.f;
+            yawChanged = true;
         }
-        if (ImGui::Button("Reset Rotation"))
+        if (ImGui::Button("Reset rotation"))
         {
-            cameraYaw = 0.f;
-            cameraPitch = 0.f;
+            camera.reset();
         }
-        if (ImGui::Button("Reset Zoom"))
+        if (ImGui::Button("Reset zoom"))
         {
-            cameraDistance = 1.f;
+            camera.resetZoom();
         }
-        if (ImGui::Button("Reset Panning"))
+        if (ImGui::Button("Reset panning"))
         {
-            target = glm::vec3(0.f);
+            camera.resetPanning();
         }
+        if (pitchChanged || yawChanged)
+        {
+            camera.setEulerAngles(yaw, pitch);
+        }
+#pragma endregion
         ImGui::Separator();
-        ImGui::Checkbox("Uniform Lighting", &uniformLighting);
+        ImGui::Checkbox("Camera as light source", &cameraAsLightSource);
+        ImGui::Checkbox("Uniform lighting", &uniformLighting);
         ImGui::Text("Light Pitch");
         ImGui::SliderFloat("###LightPitch", &lightPitch, 0.f, 90.f);
         ImGui::Text("Light Rotation");
         ImGui::SliderFloat("###LightYaw", &lightYaw, 0.f, 360.f);
         if (ImGui::Button("Reset Light"))
         {
-            lightYaw = 135.f;
-            lightPitch = 60.f;
+            lightYaw = 35.f;
+            lightPitch = 35.f;
         }
         ImGui::Separator();
-        ImGui::Text("Background Color");
+        ImGui::Text("Background color");
         ImGui::SliderFloat("R", &bgRed, 0.f, 1.f);
         ImGui::SliderFloat("G", &bgGreen, 0.f, 1.f);
         ImGui::SliderFloat("B", &bgBlue, 0.f, 1.f);
-        if (ImGui::Button("Reset Color"))
+        if (ImGui::Button("Reset color"))
         {
             bgRed = .1f;
             bgGreen = .2f;
             bgBlue = .3f;
         }
         ImGui::Separator();
+        ImGui::Checkbox("Render bone axes", &boneAxesShown);
+        ImGui::Checkbox("Render bone shapes", &boneOctahedronsShown);
         ImGui::Text("Bone Scale");
         ImGui::SliderFloat("###BoneScale", &boneScaleFactor, .5f, 4.f, "%.3f", ImGuiSliderFlags_Logarithmic);
         ImGui::End();
@@ -472,36 +453,24 @@ int main()
 #pragma endregion
 
 #pragma region Camera
-        cameraDistance -= io.MouseWheel * 0.1f;
-        cameraDistance = glm::clamp(cameraDistance, 0.1f, 100.f);
+        camera.zoom(io.MouseWheel);
 
         float aspectRatio = (float)display_w / (float)display_h;
 
-        float yawRad = glm::radians(cameraYaw);
-        float pitchRad = glm::radians(cameraPitch);
-
-        float radius = 100.f;
-
-        float x = radius * cos(pitchRad) * sin(yawRad);
-        float y = radius * sin(pitchRad);
-        float z = radius * cos(pitchRad) * cos(yawRad);
-
-        glm::vec3 cameraPos = target + glm::vec3(x, y, z);
-        glm::mat4 view = glm::lookAt(cameraPos, target, glm::vec3(0.f, 1.f, 0.f));
-        glm::mat4 proj = glm::ortho(-1.f * aspectRatio * cameraDistance, 1.f * aspectRatio * cameraDistance, -1.f * cameraDistance, 1.f * cameraDistance, .1f, 10000.f);
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 proj = glm::ortho(-1.f * aspectRatio * camera.getDistance(), 1.f * aspectRatio * camera.getDistance(), -1.f * camera.getDistance(), 1.f * camera.getDistance(), .1f, 10000.f);
 
 #pragma region panning
-        glm::vec3 forward = glm::normalize(target - cameraPos);
-        glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.f, 1.f, 0.f)));
-        glm::vec3 up = glm::normalize(glm::cross(right, forward));
-
-        if (shiftHeld && middleMouseHeld)
+        if (!io.WantCaptureMouse && middleMouseHeld)
         {
-            float panSpeed = -0.00275f * cameraDistance;
-            glm::vec2 delta(mouseDelta.x, -mouseDelta.y);
-            glm::vec3 worldDelta = right * delta.x * panSpeed + up * delta.y * panSpeed;
-
-            target += worldDelta;
+            if (shiftHeld)
+            {
+                camera.pan(glm::vec2(mouseDelta.x, mouseDelta.y), display_h);
+            }
+            else
+            {
+                camera.rotate(-mouseDelta.x * 0.005f, -mouseDelta.y * 0.005f);
+            }
         }
 #pragma endregion
 #pragma endregion
@@ -511,24 +480,37 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 #pragma region Light_vector
-        float lightYawRad = glm::radians(-lightYaw);
-        float lightPitchRad = glm::radians(-lightPitch);
+        float lightYawRad = glm::radians(lightYaw);
+        float lightPitchRad = glm::radians(lightPitch);
 
-        glm::vec3 lightDir = glm::vec3(0.f, 0.f, 0.f);
-        lightDir.x = radius * cos(lightPitchRad) * sin(lightYawRad);
-        lightDir.y = radius * sin(lightPitchRad);
-        lightDir.z = radius * cos(lightPitchRad) * cos(lightYawRad);
-        lightDir = glm::normalize(lightDir);
+        glm::vec3 lightDir = glm::vec3(1.f);
+
+        if (cameraAsLightSource)
+            lightDir = camera.getPosition();
+        else
+        {
+            lightDir.x = 100.f * cos(lightPitchRad) * sin(lightYawRad);
+            lightDir.y = 100.f * sin(lightPitchRad);
+            lightDir.z = 100.f * cos(lightPitchRad) * cos(lightYawRad);
+        }
+
+        lightDir = glm::normalize(-lightDir);
 #pragma endregion
 
         if (gridShown)
             renderer.renderGrid(view, proj);
 
         if (!geometryHidden)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
             renderer.render(view, proj, lightDir, uniformLighting);
+        }
 
         if (renderBones && skmLoaded)
-            renderer.renderBones(view, proj, boneScaleFactor);
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            renderer.renderBones(view, proj, boneScaleFactor, boneAxesShown, boneOctahedronsShown, glm::normalize(-camera.getBoneLightPosition()));
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
