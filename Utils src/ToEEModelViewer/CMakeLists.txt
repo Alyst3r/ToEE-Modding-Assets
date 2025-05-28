@@ -41,6 +41,7 @@ add_executable(ToEEModelViewer
     ${IMGUI_SOURCES}
     ${ToEEMV_res}
 )
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ToEEModelViewer)
 target_include_directories(ToEEModelViewer PRIVATE
     libs/imgui
     libs/imgui/backends

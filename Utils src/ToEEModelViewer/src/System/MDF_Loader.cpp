@@ -241,12 +241,20 @@ namespace MDF
 
             if (lowerKeyword == "texture")
             {
-                int layer;
-
-                linestream >> layer;
-
+                int layer = 0;
+                std::string token;
                 std::string restOfLine;
-                std::getline(linestream, restOfLine);
+                
+                linestream >> token;
+                
+                if (token.substr(0, 1) == "\"")
+                    restOfLine = token;
+                else
+                {
+                    layer = std::stoi(token);
+                    std::getline(linestream, restOfLine);
+                }
+
                 std::string texPath = trim(stripQuotes(trim(restOfLine)));
 
                 assignTexturePath(layer, rootPath + texPath);

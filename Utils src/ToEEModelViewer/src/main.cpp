@@ -26,6 +26,7 @@ bool geometryHidden = false;
 bool gridShown = false;
 bool renderBones = false;
 bool showToast = false;
+bool showTPose = false;
 bool skmLoaded = false;
 bool uniformLighting = false;
 bool wireframeShown = false;
@@ -40,9 +41,11 @@ float toastTimer = 0.0f;
 
 int display_w = 1280;
 int display_h = 720;
+int selectedIndex = 0;
 
 std::string loadedFilePath;
 std::string toastMessage;
+std::vector<std::string> animationNames;
 
 Camera camera;
 Renderer renderer;
@@ -331,8 +334,8 @@ int main()
         const float panelWidth = 200.0f;
         const float menuBarHeight = ImGui::GetFrameHeight();
 
-        float panelHeight = viewport->Size.y - menuBarHeight - statusBarHeight;
-        float panelPosY = viewport->Pos.y + menuBarHeight;
+        float panelHeight = viewport->Size.y - menuBarHeight - statusBarHeight + 1.f;
+        float panelPosY = viewport->Pos.y + menuBarHeight - 1.f;
 
         ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + viewport->Size.x - panelWidth, panelPosY));
         ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight));
@@ -425,6 +428,52 @@ int main()
         ImGui::End();
 #pragma endregion
 
+#pragma region Animation_Panels
+        const float animPanelHeight = 100.f;
+        const float animPanelPosY = viewport->Size.y - animPanelHeight - statusBarHeight;
+        const float animPickerWidth = 200.f;
+        const float animTimelineWidth = viewport->Size.x - panelWidth - animPickerWidth + 2.f;
+
+        ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, animPanelPosY));
+        ImGui::SetNextWindowSize(ImVec2(animPickerWidth, animPanelHeight));
+#pragma region Anim_picker
+        ImGui::Begin("Animation Picker", nullptr,
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoTitleBar
+        );
+        ImGui::Checkbox("T-pose", &showTPose);
+        if (ImGui::BeginChild("AnimationsList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_HorizontalScrollbar))
+        {
+            for (size_t i = 0; i < animationNames.size(); ++i)
+            {
+                bool isSelected = (selectedIndex == static_cast<int>(i));
+
+                if (ImGui::Selectable(animationNames[i].c_str(), isSelected))
+                {
+                    selectedIndex = static_cast<int>(i);
+                    // todo
+                }
+            }
+        }
+        ImGui::EndChild();
+        ImGui::End();
+#pragma endregion
+
+#pragma region Anim_timeline
+        ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + animPickerWidth - 1.f, animPanelPosY));
+        ImGui::SetNextWindowSize(ImVec2(animTimelineWidth, animPanelHeight));
+        ImGui::Begin("Animation Timeline", nullptr,
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoTitleBar
+        );
+        ImGui::End();
+#pragma endregion
+#pragma endregion
+
 #pragma region Reload_Toast
         if (showToast && toastTimer > 0.0f)
         {
@@ -503,13 +552,13 @@ int main()
         if (!geometryHidden)
         {
             glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
-            renderer.render(view, proj, lightDir, uniformLighting);
+            renderer.render(view, proj, lightDir, uniformLighting, showTPose);
         }
 
         if (renderBones && skmLoaded)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            renderer.renderBones(view, proj, boneScaleFactor, boneAxesShown, boneOctahedronsShown, glm::normalize(-camera.getBoneLightPosition()));
+            renderer.renderBones(view, proj, boneScaleFactor, boneAxesShown, boneOctahedronsShown, glm::normalize(-camera.getBoneLightPosition()), showTPose);
         }
 
         ImGui::Render();

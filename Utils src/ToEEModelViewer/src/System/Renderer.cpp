@@ -294,7 +294,7 @@ void Renderer::clearMesh()
     mesh.destroy();
 }
 
-void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, bool uniformLighting)
+void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, bool uniformLighting, bool showTPose)
 {
     if (!mesh.modelVAO)
         return;
@@ -305,7 +305,11 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "boneMatrices"), mesh.skinningMatrix.size(), GL_FALSE, &mesh.skinningMatrix[0][0][0]);
+
+    if (showTPose)
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "boneMatrices"), mesh.tPoseSkinningMatrix.size(), GL_FALSE, &mesh.tPoseSkinningMatrix[0][0][0]);
+    else
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "boneMatrices"), mesh.skinningMatrix.size(), GL_FALSE, &mesh.skinningMatrix[0][0][0]);
 
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir[0]);
     glUniform1i(glGetUniformLocation(shaderProgram, "uniformLight"), uniformLighting ? 1 : 0);
@@ -327,29 +331,29 @@ void Renderer::renderGrid(const glm::mat4& view, const glm::mat4& projection) co
     glBindVertexArray(0);
 }
 
-void Renderer::renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showAxes, bool showOctahedrons, const glm::vec3 lightDir)
+void Renderer::renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showAxes, bool showOctahedrons, const glm::vec3 lightDir, bool showTPose)
 {
     if (!showAxes && !showOctahedrons)
     {
-        renderBoneShapes(view, projection, scaleFactor, lightDir);
+        renderBoneShapes(view, projection, scaleFactor, lightDir, showTPose);
         return;
     }
 
     if (showAxes)
-        renderBoneAxes(view, projection, scaleFactor);
+        renderBoneAxes(view, projection, scaleFactor, showTPose);
 
     if (showOctahedrons)
-        renderBoneShapes(view, projection, scaleFactor, lightDir);
+        renderBoneShapes(view, projection, scaleFactor, lightDir, showTPose);
 }
 
-void Renderer::renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor)
+void Renderer::renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showTPose)
 {
     glUseProgram(boneAxesShaderProgram);
 
     glUniformMatrix4fv(glGetUniformLocation(boneAxesShaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(boneAxesShaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-    for (const auto& boneMatrix : mesh.skaWorldMatrices)
+    for (const auto& boneMatrix : showTPose ? mesh.skmWorldMatrices : mesh.skaWorldMatrices)
     {
         float factor = 4.f * scaleFactor;
         glm::vec3 position = glm::vec3(boneMatrix[3]);
@@ -391,7 +395,7 @@ void Renderer::renderBoneAxes(const glm::mat4& view, const glm::mat4& projection
     }
 }
 
-void Renderer::renderBoneShapes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, const glm::vec3 lightDir)
+void Renderer::renderBoneShapes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, const glm::vec3 lightDir, bool showTPose)
 {
     glUseProgram(boneShapeShaderProgram);
 
@@ -401,7 +405,7 @@ void Renderer::renderBoneShapes(const glm::mat4& view, const glm::mat4& projecti
     glUniformMatrix4fv(glGetUniformLocation(boneShapeShaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
     glUniform3fv(glGetUniformLocation(boneShapeShaderProgram, "lightDir"), 1, &lightDir[0]);
 
-    for (const auto& boneMatrix : mesh.skaWorldMatrices)
+    for (const auto& boneMatrix : showTPose ? mesh.skmWorldMatrices : mesh.skaWorldMatrices)
     {
         Shape::Vertex transformedVertices[24];
         memcpy(transformedVertices, Shape::Bone::modelVertices, sizeof(Shape::Bone::modelVertices));

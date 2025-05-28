@@ -11,9 +11,9 @@ public:
     void shutdown();
 
     void uploadMesh(const SKM::MeshBuffer& mesh);
-    void render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, bool uniformLighting);
+    void render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, bool uniformLighting, bool showTPose);
     void renderGrid(const glm::mat4& view, const glm::mat4& projection) const;
-    void renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showAxes, bool showOctahedrons, const glm::vec3 lightDir);
+    void renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showAxes, bool showOctahedrons, const glm::vec3 lightDir, bool showTPose);
     void clearMesh();
 
     glm::vec3 getModelCenter() const { return mesh.modelCenter; };
@@ -35,6 +35,6 @@ private:
 
     SKM::MeshBuffer mesh;
 
-    void renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor);
-    void renderBoneShapes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, const glm::vec3 lightDir);
+    void renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showTPose);
+    void renderBoneShapes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, const glm::vec3 lightDir, bool showTPose);
 };
