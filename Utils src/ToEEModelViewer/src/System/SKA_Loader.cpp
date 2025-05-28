@@ -31,6 +31,14 @@ namespace SKA
         animHeaderData.resize(header.animCount);
         file.read(reinterpret_cast<char*>(animHeaderData.data()), animHeaderData.size() * sizeof(AnimationHeader));
 
+        int16_t animEventCount = computeAnimEventCount();
+        if (animEventCount)
+        {
+            uint32_t animEventDataOffset = sizeof(Header) + (boneData.size() * sizeof(BoneData)) + (animHeaderData.size() * sizeof(AnimationHeader));
+            animEventData.resize(animEventCount);
+            file.read(reinterpret_cast<char*>(animEventData.data()), animEventData.size() * sizeof(AnimationEvent));
+        }
+
         computeTransforms();
 
         return true;
@@ -50,10 +58,22 @@ namespace SKA
         }
     }
 
+    int16_t SKAFile::computeAnimEventCount()
+    {
+        int16_t temp = 0;
+
+        for (const auto& it : animHeaderData)
+            temp += it.eventCount;
+
+        return temp;
+    }
+
     void SKAFile::clear()
     {
         header = { };
         boneData.resize(0);
         boneTransforms.resize(0);
+        animHeaderData.resize(0);
+        animEventData.resize(0);
     }
 }

@@ -26,6 +26,7 @@ bool cameraAsLightSource = false;
 bool geometryHidden = false;
 bool gridShown = false;
 bool renderBones = false;
+bool showAnimEvents = false;
 bool showToast = false;
 bool showTPose = false;
 bool skmLoaded = false;
@@ -195,6 +196,8 @@ int main()
         bool hideGeometryShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_H, false);
         bool renderBonesShortcut = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B, false);
         bool centerOnModelShortcut = io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_C, false);
+        // tools
+        bool animEventClicked = false;
 #pragma endregion
 
 #pragma region MenuBar
@@ -216,6 +219,13 @@ int main()
                 hideGeometryClicked = ImGui::MenuItem("Hide geometry", "Ctrl+H", geometryHidden);
                 renderBonesClicked = ImGui::MenuItem("Render bones", "Ctrl+B", renderBones);
                 centerOnModelClicked = ImGui::MenuItem("Center on model", "Shift+C");
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Tools"))
+            {
+                animEventClicked = ImGui::MenuItem("Animation Events", nullptr, showAnimEvents);
 
                 ImGui::EndMenu();
             }
@@ -307,6 +317,11 @@ int main()
         if (centerOnModelClicked || centerOnModelShortcut)
         {
             camera.setTarget(renderer.getModelCenter());
+        }
+        // tools
+        if (animEventClicked)
+        {
+            showAnimEvents = !showAnimEvents;
         }
 #pragma endregion
 
@@ -438,7 +453,7 @@ int main()
 #pragma endregion
 
 #pragma region Animation_Panels
-        const float animPanelHeight = 100.f;
+        const float animPanelHeight = 130.f;
         const float animPanelPosY = viewport->Size.y - animPanelHeight - statusBarHeight;
         const float animPickerWidth = 200.f;
         const float animTimelineWidth = viewport->Size.x - panelWidth - animPickerWidth + 2.f;
@@ -486,6 +501,52 @@ int main()
 #pragma endregion
 #pragma endregion
 
+#pragma region AnimEvents
+        if (showAnimEvents)
+        {
+            float animEventPosY = 18.f;
+            float animEventWidth = viewport->Size.x - panelWidth + 1;
+            float animEventHeight = 140.f;
+
+            ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, animEventPosY));
+            ImGui::SetNextWindowSize(ImVec2(animEventWidth, animEventHeight));
+            ImGui::Begin("Animation Event Info", nullptr,
+                ImGuiWindowFlags_NoCollapse |
+                ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoMove
+            );
+            if (ImGui::BeginChild("EventList", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar))
+            {
+                if (ImGui::BeginTable("EventsTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX))
+                {
+                    ImGui::TableSetupColumn("Frame ID");
+                    ImGui::TableSetupColumn("Event Type");
+                    ImGui::TableSetupColumn("Action");
+                    ImGui::TableHeadersRow();
+
+                    for (const auto& it : skmModel.animation.animEventData)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%d", it.frameId);
+
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(it.eventType);
+
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::TextUnformatted(it.action);
+                    }
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::EndChild();
+            }
+
+            ImGui::End();
+        }
+#pragma endregion
+
 #pragma region Reload_Toast
         if (showToast && toastTimer > 0.0f)
         {
@@ -514,7 +575,8 @@ int main()
 #pragma endregion
 
 #pragma region Camera
-        camera.zoom(io.MouseWheel);
+        if (!io.WantCaptureMouse)
+            camera.zoom(io.MouseWheel);
 
         float aspectRatio = (float)display_w / (float)display_h;
 

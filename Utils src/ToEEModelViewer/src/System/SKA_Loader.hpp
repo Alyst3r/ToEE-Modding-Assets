@@ -66,6 +66,13 @@ namespace SKA
         uint16_t padding = 0;
         AnimationStreamHeader streamHeaderData[10];
     };
+
+    struct AnimationEvent
+    {
+        int16_t frameId = 0;
+        char eventType[48];
+        char action[128];
+    };
 #pragma pack(pop)
     
     struct BoneTransform
@@ -80,11 +87,13 @@ namespace SKA
         Header header = { };
         std::vector<BoneData> boneData;
         std::vector<AnimationHeader> animHeaderData;
+        std::vector<AnimationEvent> animEventData;
 
         std::vector<BoneTransform> boneTransforms;
 
         bool loadFromFile(const std::string& path);
         void computeTransforms();
+        int16_t computeAnimEventCount();
         void SKAFile::clear();
     };
 }
