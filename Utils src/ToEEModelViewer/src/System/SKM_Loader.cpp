@@ -331,4 +331,18 @@ namespace SKM
 #endif
         }
     }
+
+    bool SKMFile::populateAnimNames(std::vector<std::string>& animList)
+    {
+        if (loaded)
+        {
+            animList.resize(0);
+            animList.reserve(animation.header.animCount);
+
+            for (const auto& it : animation.animHeaderData)
+                animList.emplace_back(it.name);
+        }
+
+        return true;
+    }
 }

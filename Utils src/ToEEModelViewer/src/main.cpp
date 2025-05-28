@@ -19,6 +19,7 @@
 #endif
 
 #pragma region some global shit that could probably be a part of int main()
+bool animsLoaded = false;
 bool boneAxesShown = false;
 bool boneOctahedronsShown = true;
 bool cameraAsLightSource = false;
@@ -241,10 +242,14 @@ int main()
             if (filePath.length())
             {
                 if (skmModel.loaded)
+                {
+                    animsLoaded = false;
                     skmModel.clear();
+                }
 
                 if (skmModel.loadFromFile(filePath))
                 {
+                    animsLoaded = skmModel.populateAnimNames(animationNames);
                     renderer.uploadMesh(skmModel.toMesh());
                     loadedFilePath = filePath;
                     skmLoaded = true;
@@ -255,11 +260,15 @@ int main()
         if (reloadClicked || reloadShortcut)
         {
             if (skmModel.loaded)
+            {
+                animsLoaded = false;
                 skmModel.clear();
+            }
 
             if (skmModel.loadFromFile(loadedFilePath))
             {
                 skmLoaded = true;
+                animsLoaded = skmModel.populateAnimNames(animationNames);
                 renderer.uploadMesh(skmModel.toMesh());
                 toastMessage = "Reloaded SKM file";
                 toastTimer = 3.0f;
@@ -446,14 +455,17 @@ int main()
         ImGui::Checkbox("T-pose", &showTPose);
         if (ImGui::BeginChild("AnimationsList", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_HorizontalScrollbar))
         {
-            for (size_t i = 0; i < animationNames.size(); ++i)
+            if (animsLoaded)
             {
-                bool isSelected = (selectedIndex == static_cast<int>(i));
-
-                if (ImGui::Selectable(animationNames[i].c_str(), isSelected))
+                for (size_t i = 0; i < animationNames.size(); ++i)
                 {
-                    selectedIndex = static_cast<int>(i);
-                    // todo
+                    bool isSelected = (selectedIndex == static_cast<int>(i));
+
+                    if (ImGui::Selectable(animationNames[i].c_str(), isSelected))
+                    {
+                        selectedIndex = static_cast<int>(i);
+                        // todo
+                    }
                 }
             }
         }

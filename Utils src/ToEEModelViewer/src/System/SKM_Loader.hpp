@@ -15,15 +15,15 @@ namespace SKM
 {
     struct Vec2f
     {
-        float x;
-        float y;
+        float x = 0.f;
+        float y = 0.f;
     };
     struct Vec4f
     {
-        float x;
-        float y;
-        float z;
-        float w;
+        float x = 0.f;
+        float y = 0.f;
+        float z = 0.f;
+        float w = 0.f;
     };
 
     struct Matrix3x4
@@ -34,20 +34,20 @@ namespace SKM
 #pragma pack(push, 1)
     struct Header
     {
-        uint32_t boneCount;
-        uint32_t boneDataOffset;
-        uint32_t materialCount;
-        uint32_t materialDataOffset;
-        uint32_t vertexCount;
-        uint32_t vertexDataOffset;
-        uint32_t faceCount;
-        uint32_t faceDataOffset;
+        uint32_t boneCount = 0;
+        uint32_t boneDataOffset = 0;
+        uint32_t materialCount = 0;
+        uint32_t materialDataOffset = 0;
+        uint32_t vertexCount = 0;
+        uint32_t vertexDataOffset = 0;
+        uint32_t faceCount = 0;
+        uint32_t faceDataOffset = 0;
     };
 
     struct BoneData
     {
-        uint16_t flags;
-        int16_t parentBone;
+        int16_t flags = 0;
+        int16_t parentBone = -1;
         char boneName[48];
         Matrix3x4 worldInverse;
     };
@@ -62,16 +62,16 @@ namespace SKM
         Vec4f vertexPosition;
         Vec4f normals;
         Vec2f uvPosition;
-        uint16_t unknown;
-        uint16_t vertexWeightsCount;
-        uint16_t boneID[6];
-        float boneWeight[6];
+        uint16_t unknown = 0;
+        uint16_t vertexWeightsCount = 0;
+        uint16_t boneID[6] = { 0 };
+        float boneWeight[6] = { 0.f };
     };
 
     struct FaceData
     {
-        uint16_t materialIndex;
-        uint16_t vertexIndex[3];
+        uint16_t materialIndex = 0;
+        uint16_t vertexIndex[3] = { 0 };
     };
 #pragma pack(pop)
 
@@ -133,6 +133,8 @@ namespace SKM
         bool loadAnimation(const std::string& path);
         bool loadFromFile(const std::string& path);
         void loadMaterials();
+
+        bool populateAnimNames(std::vector<std::string>& animList);
 
         MeshBuffer toMesh();
         SKA::SKAFile animation;

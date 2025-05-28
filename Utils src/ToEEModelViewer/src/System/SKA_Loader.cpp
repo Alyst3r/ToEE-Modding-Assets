@@ -27,6 +27,10 @@ namespace SKA
         boneData.resize(header.boneCount);
         file.read(reinterpret_cast<char*>(boneData.data()), boneData.size() * sizeof(BoneData));
 
+        file.seekg(header.animDataOffset);
+        animHeaderData.resize(header.animCount);
+        file.read(reinterpret_cast<char*>(animHeaderData.data()), animHeaderData.size() * sizeof(AnimationHeader));
+
         computeTransforms();
 
         return true;
