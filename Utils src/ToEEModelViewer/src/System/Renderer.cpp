@@ -19,24 +19,36 @@ void Renderer::initialize()
 
         out vec3 FragPos;
         out vec3 Normal;
+        out vec2 TexCoord;
 
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
-        uniform mat4 boneMatrices[120];
+        uniform samplerBuffer boneMatrixTex;
+
+        mat4 getBoneMatrix(int index) {
+            int baseIndex = index * 4;
+            return mat4(
+                texelFetch(boneMatrixTex, baseIndex + 0),
+                texelFetch(boneMatrixTex, baseIndex + 1),
+                texelFetch(boneMatrixTex, baseIndex + 2),
+                texelFetch(boneMatrixTex, baseIndex + 3)
+            );
+        }
         
         void main() {
             mat4 skinMatrix = 
-                boneMatrices[aBoneIDs.x] * aWeights.x +
-                boneMatrices[aBoneIDs.y] * aWeights.y +
-                boneMatrices[aBoneIDs.z] * aWeights.z +
-                boneMatrices[aBoneIDs.w] * aWeights.w;
+                getBoneMatrix(int(aBoneIDs.x)) * aWeights.x +
+                getBoneMatrix(int(aBoneIDs.y)) * aWeights.y +
+                getBoneMatrix(int(aBoneIDs.z)) * aWeights.z +
+                getBoneMatrix(int(aBoneIDs.w)) * aWeights.w;
 
             vec4 skinnedPosition = skinMatrix * vec4(aPos, 1.0);
             vec3 skinnedNormal = mat3(skinMatrix) * aNormal;
 
             FragPos = vec3(model * skinnedPosition);
             Normal = mat3(transpose(inverse(model))) * skinnedNormal;
+            TexCoord = aUV;
 
             gl_Position = projection * view * vec4(FragPos, 1.0);
         }
@@ -45,6 +57,7 @@ void Renderer::initialize()
     const char* fragSrc = R"GLSL(
         #version 330 core
 
+        in vec2 TexCoord;
         in vec3 FragPos;
         in vec3 Normal;
 
@@ -217,6 +230,10 @@ void Renderer::initialize()
     glDeleteShader(boneShapeFragmentShader);
 
     // other stuff
+    // bone TBO
+    glGenBuffers(1, &boneTBO);
+    glGenTextures(1, &boneTBOTexture);
+
     // grid setup
     std::vector<glm::vec3> lines;
     const int gridSize = 50;
@@ -306,10 +323,20 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-    if (showTPose)
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "boneMatrices"), mesh.tPoseSkinningMatrix.size(), GL_FALSE, &mesh.tPoseSkinningMatrix[0][0][0]);
-    else
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "boneMatrices"), mesh.skinningMatrix.size(), GL_FALSE, &mesh.skinningMatrix[0][0][0]);
+    // bones
+    const std::vector<glm::mat4>& boneMats = showTPose ? mesh.tPoseSkinningMatrix : mesh.skinningMatrix;
+    size_t boneCount = boneMats.size();
+
+    glBindBuffer(GL_TEXTURE_BUFFER, boneTBO);
+    glBufferData(GL_TEXTURE_BUFFER, boneCount * sizeof(glm::mat4), boneMats.data(), GL_DYNAMIC_DRAW);
+
+    glBindTexture(GL_TEXTURE_BUFFER, boneTBOTexture);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, boneTBO);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_BUFFER, boneTBOTexture);
+    glUniform1i(glGetUniformLocation(shaderProgram, "boneMatrixTex"), 0);
+    // bones end
 
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir[0]);
     glUniform1i(glGetUniformLocation(shaderProgram, "uniformLight"), uniformLighting ? 1 : 0);

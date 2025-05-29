@@ -33,6 +33,9 @@ private:
     GLuint boneShapeVAO = 0;
     GLuint boneShapeVBO = 0;
 
+    GLuint boneTBO = 0;
+    GLuint boneTBOTexture = 0;
+
     SKM::MeshBuffer mesh;
 
     void renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showTPose);

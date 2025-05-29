@@ -220,17 +220,17 @@ namespace MDF
 
             if (lowerKeyword == "textured")
             {
-                materialType = MAERIAL_TYPE_TEXTURED;
+                materialType = MATERIAL_TYPE_TEXTURED;
                 continue;
             }
             else if (lowerKeyword == "general")
             {
-                materialType = MAERIAL_TYPE_GENERAL;
+                materialType = MATERIAL_TYPE_GENERAL;
                 continue;
             }
             else if (lowerKeyword == "clipper")
             {
-                materialType = MAERIAL_TYPE_CLIPPER;
+                materialType = MATERIAL_TYPE_CLIPPER;
                 continue;
             }
             else if (lowerKeyword == "highquality")
@@ -248,7 +248,10 @@ namespace MDF
                 linestream >> token;
                 
                 if (token.substr(0, 1) == "\"")
-                    restOfLine = token;
+                {
+                    std::getline(linestream, restOfLine);
+                    restOfLine = token + restOfLine;
+                }
                 else
                 {
                     layer = std::stoi(token);

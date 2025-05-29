@@ -85,6 +85,12 @@ namespace SKM
         glm::vec4 boneWeights = glm::vec4(0.0f);
     };
 
+    struct MaterialGroup
+    {
+        int32_t materialID = -1;
+        std::vector<uint32_t> vertexIndices;
+    };
+
     struct MeshBuffer
     {
         std::vector<GPUVertex> vertices;
@@ -97,6 +103,8 @@ namespace SKM
 
         std::vector<MDF::MDFFile> materialData;
         std::unordered_map<std::string, TGA::TGAImage> textureCache;
+
+        std::vector<MaterialGroup> materialGroup;
 
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::vec3 modelCenter = glm::vec3(0.0f);
@@ -118,6 +126,8 @@ namespace SKM
         std::vector<std::string> materials;
         std::vector<VertexData> vertices;
         std::vector<FaceData> faces;
+
+        std::vector<MaterialGroup> materialGroup;
 
         std::vector<glm::mat4> skaWorldMatrices;
         std::vector<glm::mat4> skmInverseWorldMatrices;

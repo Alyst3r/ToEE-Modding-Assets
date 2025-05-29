@@ -116,6 +116,7 @@ namespace SKM
         loaded = false;
         animation.clear();
         materialData.resize(0);
+        materialGroup.resize(0);
     }
 
     MeshBuffer SKMFile::toMesh()
@@ -219,6 +220,9 @@ namespace SKM
         mesh.materialData.resize(materialData.size());
         mesh.materialData = materialData;
 
+        mesh.materialGroup.resize(materialGroup.size());
+        mesh.materialGroup = materialGroup;
+
         mesh.loadTextures();
 
         return mesh;
@@ -284,6 +288,8 @@ namespace SKM
 
         modelMatrix = glm::mat4(1.0f);
         modelCenter = glm::vec3(0.0f);
+
+        materialGroup.resize(0);
     }
 
     void MeshBuffer::loadTextures()

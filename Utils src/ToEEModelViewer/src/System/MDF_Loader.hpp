@@ -6,9 +6,17 @@ namespace MDF
 {
 	struct ColorRGBA
 	{
-		uint8_t r = 0;
-		uint8_t g = 0;
-		uint8_t b = 0;
+		uint8_t r = 255;
+		uint8_t g = 255;
+		uint8_t b = 255;
+		uint8_t a = 255;
+	};
+
+	struct SpecularRGBA
+	{
+		uint8_t r = 128;
+		uint8_t g = 128;
+		uint8_t b = 128;
 		uint8_t a = 255;
 	};
 
@@ -21,7 +29,7 @@ namespace MDF
 		float speedU[4] = { 0.f };
 		float speedV[4] = { 0.f };
 		ColorRGBA color;
-		ColorRGBA specular; // doesn't seem to exist in any existing material file, glossMap texture is used instead
+		SpecularRGBA specular; // doesn't seem to exist in any existing material file, glossMap texture is used instead
 		float specularPower;
 		uint8_t materialBlendType = 0;
 		uint8_t renderFlags = 0;
@@ -68,9 +76,9 @@ namespace MDF
 
 		enum MaterialType : uint8_t
 		{
-			MAERIAL_TYPE_TEXTURED = 0,
-			MAERIAL_TYPE_GENERAL = 1,
-			MAERIAL_TYPE_CLIPPER = 2
+			MATERIAL_TYPE_TEXTURED = 0,
+			MATERIAL_TYPE_GENERAL = 1,
+			MATERIAL_TYPE_CLIPPER = 2
 		};
 
 		void assignTexturePath(int layer, const std::string& path);
