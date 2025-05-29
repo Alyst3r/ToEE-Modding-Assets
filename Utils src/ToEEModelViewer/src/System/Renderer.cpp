@@ -4,6 +4,11 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/range.hpp>
+
+#include <iostream>
+#include <random>
 
 void Renderer::initialize()
 {
@@ -64,15 +69,16 @@ void Renderer::initialize()
         out vec4 FragColor;
 
         uniform vec3 lightDir;
-        uniform vec3 baseColor = vec3(0.8, 0.8, 0.8);
+        uniform vec4 baseColor;
         uniform bool uniformLight;
 
         void main() {
             float diff = uniformLight ? 1.0 : max(dot(normalize(Normal), -lightDir), 0.0);
 
-            vec3 ambient = 0.1 * baseColor;
-            vec3 result = ambient + baseColor * diff * vec3(1.0);
-            FragColor = vec4(result, 1.0);
+            vec3 ambient = 0.1 * vec3(1.0);
+            vec3 color = ambient + baseColor.rgb * diff;
+
+            FragColor = vec4(color, baseColor.a);
         }
     )GLSL";
 
@@ -341,9 +347,29 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir[0]);
     glUniform1i(glGetUniformLocation(shaderProgram, "uniformLight"), uniformLighting ? 1 : 0);
 
-    glBindVertexArray(mesh.modelVAO);
-    glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+    auto debugColors = generateDebugColors(mesh.materialGroup.size());
+
+    for (uint32_t i = 0; i < mesh.materialGroup.size(); i++)
+    {
+        const auto& group = mesh.materialGroup[i];
+
+        glBindVertexArray(mesh.modelVAO);
+
+        if (!debugMaterials)
+        {
+            MDF::ColorRGBAFloat tempColor = MDF::toRGBAFloat(mesh.materialData[i].color);
+            glm::vec4 color = glm::vec4(tempColor.r, tempColor.g, tempColor.b, tempColor.a);
+            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, glm::value_ptr(color));
+        }
+        else
+        {
+            glm::vec4 color = debugColors[i % debugColors.size()];
+            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, glm::value_ptr(color));
+        }
+
+        glDrawElements(GL_TRIANGLES, group.indexCount, GL_UNSIGNED_INT, (void*)(group.indexOffset * sizeof(uint32_t)));
+        glBindVertexArray(0);
+    }
 }
 
 void Renderer::renderGrid(const glm::mat4& view, const glm::mat4& projection) const
@@ -465,4 +491,19 @@ void Renderer::renderBoneShapes(const glm::mat4& view, const glm::mat4& projecti
         glDeleteBuffers(1, &boneShapeVBO);
         glDeleteVertexArrays(1, &boneShapeVAO);
     }
+}
+
+std::vector<glm::vec4> Renderer::generateDebugColors(size_t count)
+{
+    std::vector<glm::vec4> colors;
+    std::mt19937 rng(69);
+    std::uniform_real_distribution<float> dist(0.f, 1.f);
+
+    for (size_t i = 0; i < count; i++)
+    {
+        glm::vec4 color(dist(rng), dist(rng), dist(rng), 1.f);
+        colors.push_back(color);
+    }
+
+    return colors;
 }

@@ -195,12 +195,11 @@ namespace SKM
         float max = glm::compMax(maxPos);
         mesh.modelCenter = (minPos + maxPos) * .5f;
 
-        mesh.indices.reserve(faces.size() * 3);
-        for (const auto& f : faces)
+        for (auto& group : materialGroup)
         {
-            mesh.indices.emplace_back(f.vertexIndex[0]);
-            mesh.indices.emplace_back(f.vertexIndex[1]);
-            mesh.indices.emplace_back(f.vertexIndex[2]);
+            group.indexOffset = mesh.indices.size();
+            group.indexCount = group.vertexIndices.size();
+            mesh.indices.insert(mesh.indices.end(), group.vertexIndices.begin(), group.vertexIndices.end());
         }
 
         mesh.skinningMatrix.resize(skaWorldMatrices.size());
@@ -336,6 +335,23 @@ namespace SKM
             materialData[i].debugPrint();
 #endif
         }
+
+        std::unordered_map<uint8_t, MaterialGroup> groupMap;
+        for (const FaceData& face : faces)
+        {
+            uint8_t matIdx = face.materialIndex;
+            auto& group = groupMap[matIdx];
+            group.materialID = matIdx;
+
+            group.vertexIndices.push_back(face.vertexIndex[0]);
+            group.vertexIndices.push_back(face.vertexIndex[1]);
+            group.vertexIndices.push_back(face.vertexIndex[2]);
+        }
+        materialGroup.resize(0);
+        materialGroup.reserve(groupMap.size());
+
+        for (auto& [matID, group] : groupMap)
+            materialGroup.push_back(std::move(group));
     }
 
     bool SKMFile::populateAnimNames(std::vector<std::string>& animList)

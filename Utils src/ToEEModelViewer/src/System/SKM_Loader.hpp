@@ -88,6 +88,8 @@ namespace SKM
     struct MaterialGroup
     {
         int32_t materialID = -1;
+        size_t indexOffset = 0;
+        size_t indexCount = 0;
         std::vector<uint32_t> vertexIndices;
     };
 

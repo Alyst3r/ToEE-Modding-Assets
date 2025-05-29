@@ -329,11 +329,31 @@ namespace MDF
             }
             else if (lowerKeyword == "color")
             {
-                linestream >> color.r >> color.g >> color.b >> color.a;
+                uint32_t r = 0;
+                uint32_t g = 0;
+                uint32_t b = 0;
+                uint32_t a = 0;
+
+                linestream >> r >> g >> b >> a;
+
+                color.r = static_cast<uint8_t>(r);
+                color.g = static_cast<uint8_t>(g);
+                color.b = static_cast<uint8_t>(b);
+                color.a = static_cast<uint8_t>(a);
             }
             else if (lowerKeyword == "specular")
             {
-                linestream >> specular.r >> specular.g >> specular.b >> specular.a;
+                uint32_t r = 0;
+                uint32_t g = 0;
+                uint32_t b = 0;
+                uint32_t a = 0;
+
+                linestream >> r >> g >> b >> a;
+
+                specular.r = static_cast<uint8_t>(r);
+                specular.g = static_cast<uint8_t>(g);
+                specular.b = static_cast<uint8_t>(b);
+                specular.a = static_cast<uint8_t>(a);
             }
             else
             {
@@ -364,5 +384,17 @@ namespace MDF
         LOG_DEBUG << "Material blend type: " << (unsigned int)materialBlendType;
         LOG_DEBUG << "Render flags: " << (unsigned int)renderFlags;
         LOG_DEBUG << "Texture count: " << (unsigned int)textureCount;
+    }
+
+    ColorRGBAFloat toRGBAFloat(ColorRGBA color)
+    {
+        ColorRGBAFloat tempColor;
+
+        tempColor.r = (float)color.r / 255.f;
+        tempColor.g = (float)color.g / 255.f;
+        tempColor.b = (float)color.b / 255.f;
+        tempColor.a = (float)color.a / 255.f;
+
+        return tempColor;
     }
 }

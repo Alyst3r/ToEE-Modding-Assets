@@ -38,6 +38,10 @@ private:
 
     SKM::MeshBuffer mesh;
 
+    bool debugMaterials = false;
+
     void renderBoneAxes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showTPose);
     void renderBoneShapes(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, const glm::vec3 lightDir, bool showTPose);
+
+    std::vector<glm::vec4> generateDebugColors(size_t count);
 };
