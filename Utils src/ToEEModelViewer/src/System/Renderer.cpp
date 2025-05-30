@@ -13,6 +13,7 @@ void Renderer::initialize()
     // model shader
     const char* vertSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
 
         layout (location = 0) in vec3 aPos;
         layout (location = 1) in vec2 aUV;
@@ -60,6 +61,7 @@ void Renderer::initialize()
 
     const char* fragSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
 
         in vec2 TexCoord;
         in vec3 FragPos;
@@ -95,6 +97,7 @@ void Renderer::initialize()
         uniform bool isMaterialGeneral;
         uniform int textureCount;
         uniform float glossShininess;
+        uniform float time;
 
         vec3 calculateSpecular(vec3 normal, vec3 viewDir, vec3 lightDir)
         {
@@ -107,43 +110,178 @@ void Renderer::initialize()
                 specular = texture(glossTexture, TexCoord).rgb * specIntensity;
             else
                 specular = specularColor.rgb * specIntensity;
-        
+
             return specular;
+        }
+
+        vec2 getUV(int uvType, vec2 baseUV, vec3 worldPos, vec3 normal, vec2 speed, float time)
+        {
+            if (uvType == 0) // Mesh
+            {
+                return baseUV;
+            }
+            else if (uvType == 1) // Environment
+            {
+                //vec3 r = reflect(normalize(worldPos - cameraPos), normalize(normal));
+                //float m = 2.0 * sqrt(r.x * r.x + r.y * r.y + (r.z + 1.0) * (r.z + 1.0));
+                //return 0.5 * (r.xy / m + 1.0);
+                vec3 r = reflect(normalize(FragPos - cameraPos), normalize(normal));
+                float m = sqrt(r.x * r.x + r.y * r.y + (r.z + 1.0) * (r.z + 1.0));
+                return 0.5 * (r.xy / m + 1.0);
+            }
+            else if (uvType == 2) // Drift
+            {
+                return baseUV + speed * time;
+            }
+            else if (uvType == 3) // Swirl
+            {
+                vec2 center = vec2(0.5);
+                vec2 uv = baseUV - center;
+
+                float swirlSpeed = (speed.x == 0.0 && speed.y == 0.0) ? 60.0 : speed.x;
+                float angle = time * swirlSpeed * 0.0475;
+                float s = sin(angle);
+                float c = cos(angle);
+
+                uv = vec2(
+                    uv.x * c - uv.y * s,
+                    uv.x * s + uv.y * c
+                );
+                return uv + center;
+            }
+            else if (uvType == 4) // Wavey
+            {
+                vec2 uv = baseUV;
+                uv.y += sin((uv.x + time * speed.x) * 10.0) * 0.02;
+                uv.x += sin((uv.y + time * speed.y) * 10.0) * 0.02;
+                return uv;
+            }
+
+            return baseUV;
+        }
+
+        struct BlendedResult
+        {
+            vec3 rgb;
+            float alpha;
+        };
+
+        BlendedResult blendColor(vec4 base, vec4 newTex, int blendType)
+        {
+            BlendedResult result;
+            result.alpha = base.a;
+
+            if (blendType == 0) // Modulate
+            {
+                result.rgb = base.rgb * newTex.rgb;
+                result.alpha = base.a * newTex.a;
+            }
+            else if (blendType == 1) // Add
+            {
+                result.rgb = base.rgb + newTex.rgb;
+                result.alpha = base.a * newTex.a;
+            }
+            else if (blendType == 2) // Texture Alpha
+            {
+                float ta = newTex.a;
+                result.rgb = (newTex.rgb * ta) + (base.rgb * (1.0 - ta));
+                result.alpha = base.a;
+            }
+            else if (blendType == 3) // Current Alpha
+            {
+                float ca = base.a;
+                result.rgb = (newTex.rgb * ca) + (base.rgb * (1.0 - ca));
+                result.alpha = newTex.a;
+            }
+            else if (blendType == 4) // Current Alpha Add
+            {
+                result.rgb = base.rgb + (newTex.a * newTex.rgb);
+                result.alpha = newTex.a;
+            }
+            else
+            {
+                result.rgb = base.rgb;
+                result.alpha = base.a;
+            }
+
+            return result;
+        }
+
+        vec4 getTextureColor(int index, vec2 uv)
+        {
+            if (index == 0)
+                return texture(texture0, uv);
+
+            if (index == 1)
+                return texture(texture1, uv);
+
+            if (index == 2)
+                return texture(texture2, uv);
+
+            if (index == 3)
+                return texture(texture3, uv);
+
+            return vec4(1.0);
+        }
+
+        ivec2 getType(int index)
+        {
+            if (index == 0)
+                return types0;
+
+            if (index == 1)
+                return types1;
+
+            if (index == 2)
+                return types2;
+
+            if (index == 3)
+                return types3;
+
+            return ivec2(0);
+        }
+
+        vec2 getSpeed(int index)
+        {
+            if (index == 0)
+                return speed0;
+
+            if (index == 1)
+                return speed1;
+
+            if (index == 2)
+                return speed2;
+
+            if (index == 3)
+                return speed3;
+
+            return vec2(0.0);
         }
 
         void main()
         {
-            float alpha = 1.0;
-            float diff = 1.0;
-            vec3 ambient = vec3(0.1 * baseColor.rgb);
-            vec3 color = vec3(1.0);
-            vec3 specular = vec3(1.0);
-            vec4 tex0Color = vec4(1.0);
-            vec4 tex1Color = vec4(1.0);
-            vec4 tex2Color = vec4(1.0);
-            vec4 tex3Color = vec4(1.0);
+            float diff = uniformLight ? 1.0 : max(dot(normalize(Normal), -lightDir), 0.0);
+            vec3 specular = calculateSpecular(normalize(Normal), normalize(cameraPos - FragPos), lightDir);
 
-            if (!uniformLight)
-                diff = max(dot(normalize(Normal), -lightDir), 0.0);
+            vec4 finalColor = vec4(baseColor.rgb * diff, baseColor.a);
 
-            specular = calculateSpecular(normalize(Normal), normalize(cameraPos - FragPos), -lightDir);
-
-            if (!isMaterialGeneral)
+            for (int i = 0; i < textureCount; ++i)
             {
-                tex0Color = texture(texture0, TexCoord);
-                alpha = baseColor.a * tex0Color.a;
-                color = baseColor.rgb * diff * tex0Color.rgb;
-            }
-            else
-            {
-                tex0Color = texture(texture0, TexCoord);
-                alpha = baseColor.a;// * tex0Color.a;
-                color = baseColor.rgb * diff * tex0Color.rgb;
+                ivec2 types = getType(i);
+                int uvType = types.x;
+                int blendType = types.y;
+
+                vec2 uv = getUV(uvType, TexCoord, FragPos, Normal, getSpeed(i), time);
+                vec4 texColor = getTextureColor(i, uv);
+
+                BlendedResult blended = blendColor(finalColor, texColor, blendType);
+                finalColor.rgb = blended.rgb;
+                finalColor.a = blended.alpha;
             }
 
-            color += specular + ambient;
+            finalColor.rgb += specular;
 
-            FragColor = vec4(color, alpha);
+            FragColor = finalColor;
         }
     )GLSL";
 
@@ -166,6 +304,8 @@ void Renderer::initialize()
 #pragma region grid shader
     const char* gridVertSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         layout (location = 0) in vec3 aPos;
     
         uniform mat4 view;
@@ -179,6 +319,8 @@ void Renderer::initialize()
 
     const char* gridFragSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         out vec4 FragColor;
     
         void main()
@@ -207,6 +349,8 @@ void Renderer::initialize()
 #pragma region bone axes shader
     const char* boneVertSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         layout(location = 0) in vec3 aPos;
 
         uniform mat4 view;
@@ -220,6 +364,8 @@ void Renderer::initialize()
 
     const char* boneFragSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         out vec4 FragColor;
         uniform vec3 color;
 
@@ -249,6 +395,8 @@ void Renderer::initialize()
 #pragma region bone shape shader
     const char* boneShapeVertSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         layout (location = 0) in vec3 aPos;
         layout (location = 1) in vec3 aNormal;
         
@@ -269,6 +417,8 @@ void Renderer::initialize()
 
     const char* boneShapeFragSrc = R"GLSL(
         #version 330 core
+        #pragma optimize(off)
+
         out vec4 FragColor;
         
         in vec3 FragPos;
@@ -391,7 +541,7 @@ void Renderer::clearMesh()
     mesh.destroy();
 }
 
-void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::vec3& cameraPos, bool uniformLighting, bool showTPose)
+void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::vec3& cameraPos, bool uniformLighting, bool showTPose, float timeValue)
 {
     if (!mesh.modelVAO)
         return;
@@ -420,6 +570,8 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
 
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir[0]);
     glUniform3fv(glGetUniformLocation(shaderProgram, "cameraPos"), 1, &cameraPos[0]);
+
+    glUniform1f(glGetUniformLocation(shaderProgram, "time"), timeValue);
 
     auto debugColors = generateDebugColors(mesh.materialGroup.size());
 
@@ -452,14 +604,17 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
                 case MDF::MDFFile::MATERIAL_BLEND_TYPE_ALPHA:
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_FALSE);
                     break;
                 case MDF::MDFFile::MATERIAL_BLEND_TYPE_ADD:
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_ONE, GL_ONE);
+                    glDepthMask(GL_FALSE);
                     break;
                 case MDF::MDFFile::MATERIAL_BLEND_TYPE_ALPHA_ADD:
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                    glDepthMask(GL_FALSE);
                     break;
             }
 
@@ -477,27 +632,13 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
 
             for (uint32_t j = 0; j < mesh.materialData[i].textureCount; j++)
             {
-                GLint types[2] = { mesh.materialData[i].uvType[j], mesh.materialData[i].blendType[j] };
+                GLint types[2] = { (int)mesh.materialData[i].uvType[j], (int)mesh.materialData[i].blendType[j] };
                 glm::vec2 speed = glm::vec2(mesh.materialData[i].speedU[j], mesh.materialData[i].speedV[j]);
-                auto& image = TGA::getOrLoadTexture(mesh.materialData[i].texturePath[0], mesh.textureCache);
 
-                GLuint textureID;
-                glGenTextures(1, &textureID);
-                glBindTexture(GL_TEXTURE_2D, textureID);
+                glActiveTexture(GL_TEXTURE0 + j);
+                glBindTexture(GL_TEXTURE_2D, mesh.materialData[i].textureIDs[j]);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels.data());
-
-                glGenerateMipmap(GL_TEXTURE_2D);
-
-                glActiveTexture(GL_TEXTURE1 + j);
-                glBindTexture(GL_TEXTURE_2D, textureID);
-
-                glUniform1i(glGetUniformLocation(shaderProgram, ("texture" + std::to_string(j)).c_str()), 1);
+                glUniform1i(glGetUniformLocation(shaderProgram, ("texture" + std::to_string(j)).c_str()), j);
                 glUniform2iv(glGetUniformLocation(shaderProgram, ("types" + std::to_string(j)).c_str()), 1, types);
                 glUniform2fv(glGetUniformLocation(shaderProgram, ("speed" + std::to_string(j)).c_str()), 1, &speed[0]);
             }
@@ -535,6 +676,7 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
         glBindVertexArray(0);
 
         glEnable(GL_CULL_FACE);
+        glDepthMask(GL_TRUE);
     }
 }
 

@@ -11,7 +11,7 @@ public:
     void shutdown();
 
     void uploadMesh(const SKM::MeshBuffer& mesh);
-    void render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::vec3& cameraPos, bool uniformLighting, bool showTPose);
+    void render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::vec3& cameraPos, bool uniformLighting, bool showTPose, float timeValue);
     void renderGrid(const glm::mat4& view, const glm::mat4& projection) const;
     void renderBones(const glm::mat4& view, const glm::mat4& projection, float scaleFactor, bool showAxes, bool showOctahedrons, const glm::vec3 lightDir, bool showTPose);
     void clearMesh();

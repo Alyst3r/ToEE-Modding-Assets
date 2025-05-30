@@ -161,6 +161,8 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        float timeValue = static_cast<float>(glfwGetTime());
+
         glfwPollEvents();
 
         glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -627,7 +629,7 @@ int main()
         if (!geometryHidden)
         {
             glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
-            renderer.render(view, proj, lightDir, camera.getPosition(), uniformLighting, showTPose);
+            renderer.render(view, proj, lightDir, camera.getPosition(), uniformLighting, showTPose, timeValue);
         }
 
         if (renderBones && skmLoaded)

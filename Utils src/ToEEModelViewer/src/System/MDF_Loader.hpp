@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glad/glad.h>
+
 #include <string>
 
 namespace MDF
@@ -43,6 +45,8 @@ namespace MDF
 		uint8_t renderFlags = 0;
 		uint8_t textureCount = 0; // seems like valid count is 0-4
 		uint8_t materialType = 0;
+
+		GLuint textureIDs[4] = { 0 };
 
 		enum UVType : uint8_t
 		{
