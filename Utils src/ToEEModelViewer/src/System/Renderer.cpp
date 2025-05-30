@@ -4,8 +4,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/range.hpp>
 
 #include <iostream>
 #include <random>
@@ -31,7 +29,8 @@ void Renderer::initialize()
         uniform mat4 projection;
         uniform samplerBuffer boneMatrixTex;
 
-        mat4 getBoneMatrix(int index) {
+        mat4 getBoneMatrix(int index)
+        {
             int baseIndex = index * 4;
             return mat4(
                 texelFetch(boneMatrixTex, baseIndex + 0),
@@ -68,17 +67,77 @@ void Renderer::initialize()
 
         out vec4 FragColor;
 
+        uniform vec3 cameraPos;
         uniform vec3 lightDir;
         uniform vec4 baseColor;
+        uniform vec4 specularColor;
         uniform bool uniformLight;
 
-        void main() {
-            float diff = uniformLight ? 1.0 : max(dot(normalize(Normal), -lightDir), 0.0);
+        uniform sampler2D texture0;
+        uniform sampler2D texture1;
+        uniform sampler2D texture2;
+        uniform sampler2D texture3;
+        uniform sampler2D glossTexture;
 
-            vec3 ambient = 0.1 * vec3(1.0);
-            vec3 color = ambient + baseColor.rgb * diff;
+        // uvType, blendType
+        uniform ivec2 types;
 
-            FragColor = vec4(color, baseColor.a);
+        // u, v
+        uniform vec2 speed;
+
+        uniform bool hasGlossTexture;
+        uniform bool isMaterialGeneral;
+        uniform int textureCount;
+        uniform float glossShininess;
+
+        vec3 calculateSpecular(vec3 normal, vec3 viewDir, vec3 lightDir)
+        {
+            float shininess = hasGlossTexture ? glossShininess : 2.0;
+            vec3 specular = vec3(1.0);
+            vec3 halfDir = normalize(viewDir + lightDir);
+            float specIntensity = pow(max(dot(normal, halfDir), 0.0), shininess);
+
+            if (hasGlossTexture)
+                specular = texture(glossTexture, TexCoord).rgb * specIntensity;
+            else
+                specular = specularColor.rgb * specIntensity;
+        
+            return specular;
+        }
+
+        void main()
+        {
+            float alpha = 1.0;
+            float diff = 1.0;
+            vec3 ambient = vec3(0.1 * baseColor.rgb);
+            vec3 color = vec3(1.0);
+            vec3 specular = vec3(1.0);
+            vec4 tex0Color = vec4(1.0);
+            vec4 tex1Color = vec4(1.0);
+            vec4 tex2Color = vec4(1.0);
+            vec4 tex3Color = vec4(1.0);
+
+            if (!uniformLight)
+                diff = max(dot(normalize(Normal), -lightDir), 0.0);
+
+            specular = calculateSpecular(normalize(Normal), normalize(cameraPos - FragPos), -lightDir);
+
+            if (!isMaterialGeneral)
+            {
+                tex0Color = texture(texture0, TexCoord);
+                alpha = baseColor.a;// * tex0Color.a;
+                color = baseColor.rgb * diff * tex0Color.rgb;
+            }
+            else
+            {
+                tex0Color = texture(texture0, TexCoord);
+                alpha = baseColor.a;// * tex0Color.a;
+                color = baseColor.rgb * diff * tex0Color.rgb;
+            }
+
+            color += specular + ambient;
+
+            FragColor = vec4(color, alpha);
         }
     )GLSL";
 
@@ -98,7 +157,7 @@ void Renderer::initialize()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // grid shader
+#pragma region grid shader
     const char* gridVertSrc = R"GLSL(
         #version 330 core
         layout (location = 0) in vec3 aPos;
@@ -106,7 +165,8 @@ void Renderer::initialize()
         uniform mat4 view;
         uniform mat4 projection;
     
-        void main() {
+        void main()
+        {
             gl_Position = projection * view * vec4(aPos, 1.0);
         }
     )GLSL";
@@ -115,7 +175,8 @@ void Renderer::initialize()
         #version 330 core
         out vec4 FragColor;
     
-        void main() {
+        void main()
+        {
             FragColor = vec4(0.5, 0.5, 0.5, 1.0); // gray color
         }
     )GLSL";
@@ -135,8 +196,9 @@ void Renderer::initialize()
 
     glDeleteShader(gridVertexShader);
     glDeleteShader(gridFragmentShader);
+#pragma endregion
 
-    // bone axes shader
+#pragma region bone axes shader
     const char* boneVertSrc = R"GLSL(
         #version 330 core
         layout(location = 0) in vec3 aPos;
@@ -144,7 +206,8 @@ void Renderer::initialize()
         uniform mat4 view;
         uniform mat4 projection;
 
-        void main() {
+        void main()
+        {
             gl_Position = projection * view * vec4(aPos, 1.0);
         }
     )GLSL";
@@ -154,7 +217,8 @@ void Renderer::initialize()
         out vec4 FragColor;
         uniform vec3 color;
 
-        void main() {
+        void main()
+        {
             FragColor = vec4(color, 1.0);
         }
     )GLSL";
@@ -174,8 +238,9 @@ void Renderer::initialize()
 
     glDeleteShader(boneVertexShader);
     glDeleteShader(boneFragmentShader);
+#pragma endregion
 
-    // bone shape shader
+#pragma region bone shape shader
     const char* boneShapeVertSrc = R"GLSL(
         #version 330 core
         layout (location = 0) in vec3 aPos;
@@ -188,7 +253,8 @@ void Renderer::initialize()
         out vec3 FragPos;
         out vec3 Normal;
         
-        void main() {
+        void main()
+        {
             FragPos = vec3(model * vec4(aPos, 1.0));
             Normal = mat3(transpose(inverse(model))) * aNormal;
             gl_Position = projection * view * vec4(FragPos, 1.0);
@@ -206,7 +272,8 @@ void Renderer::initialize()
         uniform vec3 objectColor = vec3(0.8, 0.5, 0.3);
         uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
         
-        void main() {
+        void main()
+        {
             vec3 norm = normalize(Normal);
             vec3 lightDirection = normalize(-lightDir);
 
@@ -234,6 +301,7 @@ void Renderer::initialize()
 
     glDeleteShader(boneShapeVertexShader);
     glDeleteShader(boneShapeFragmentShader);
+#pragma endregion
 
     // other stuff
     // bone TBO
@@ -317,7 +385,7 @@ void Renderer::clearMesh()
     mesh.destroy();
 }
 
-void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, bool uniformLighting, bool showTPose)
+void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const glm::vec3& lightDir, const glm::vec3& cameraPos, bool uniformLighting, bool showTPose)
 {
     if (!mesh.modelVAO)
         return;
@@ -345,7 +413,7 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
     // bones end
 
     glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, &lightDir[0]);
-    glUniform1i(glGetUniformLocation(shaderProgram, "uniformLight"), uniformLighting ? 1 : 0);
+    glUniform3fv(glGetUniformLocation(shaderProgram, "cameraPos"), 1, &cameraPos[0]);
 
     auto debugColors = generateDebugColors(mesh.materialGroup.size());
 
@@ -355,17 +423,106 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
 
         glBindVertexArray(mesh.modelVAO);
 
+        uint8_t flags = mesh.materialData[i].renderFlags;
+        bool uniformLight = uniformLighting;
+
+        if (flags & MDF::MDFFile::RENDER_FLAG_NOT_LIT)
+            uniformLight = true;
+
+        glUniform1i(glGetUniformLocation(shaderProgram, "uniformLight"), uniformLight);
+
+        if (flags & MDF::MDFFile::RENDER_FLAG_DOUBLE)
+            glDisable(GL_CULL_FACE);
+
         if (!debugMaterials)
         {
+            uint8_t materialBlendType = mesh.materialData[i].materialBlendType;
+
+            switch (materialBlendType)
+            {
+                case MDF::MDFFile::MATERIAL_BLEND_TYPE_NONE:
+                    glDisable(GL_BLEND);
+                    break;
+                case MDF::MDFFile::MATERIAL_BLEND_TYPE_ALPHA:
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    break;
+                case MDF::MDFFile::MATERIAL_BLEND_TYPE_ADD:
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_ONE, GL_ONE);
+                    break;
+                case MDF::MDFFile::MATERIAL_BLEND_TYPE_ALPHA_ADD:
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                    break;
+            }
+
             MDF::ColorRGBAFloat tempColor = MDF::toRGBAFloat(mesh.materialData[i].color);
             glm::vec4 color = glm::vec4(tempColor.r, tempColor.g, tempColor.b, tempColor.a);
-            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, glm::value_ptr(color));
+            tempColor = MDF::toRGBAFloat(mesh.materialData[i].specular);
+            glm::vec4 spec = glm::vec4(tempColor.r, tempColor.g, tempColor.b, tempColor.a);
+
+            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, &color[0]);
+            glUniform4fv(glGetUniformLocation(shaderProgram, "specularColor"), 1, &spec[0]);
+
+            glUniform1i(glGetUniformLocation(shaderProgram, "hasGlossTexture"), !mesh.materialData[i].glossMap.empty());
+            glUniform1i(glGetUniformLocation(shaderProgram, "isMaterialGeneral"), mesh.materialData[i].materialType == MDF::MDFFile::MATERIAL_TYPE_GENERAL);
+            glUniform1i(glGetUniformLocation(shaderProgram, "textureCount"), mesh.materialData[i].textureCount);
+
+            GLint types[2] = {mesh.materialData[i].uvType[0], mesh.materialData[i].blendType[0]};
+            glm::vec2 speed = glm::vec2(mesh.materialData[i].speedU[0], mesh.materialData[i].speedV[0]);
+            auto& image = TGA::getOrLoadTexture(mesh.materialData[i].texturePath[0], mesh.textureCache);
+
+            GLuint textureID;
+            glGenTextures(1, &textureID);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels.data());
+
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+
+            glUniform1i(glGetUniformLocation(shaderProgram, ("texture" + std::to_string(0)).c_str()), 1);
+            glUniform2iv(glGetUniformLocation(shaderProgram, "types"), 1, types);
+            glUniform2fv(glGetUniformLocation(shaderProgram, "speed"), 1, &speed[0]);
+
+            if (!mesh.materialData[i].glossMap.empty())
+            {
+                auto& image = TGA::getOrLoadTexture(mesh.materialData[i].glossMap, mesh.textureCache);
+
+                GLuint textureID;
+                glGenTextures(1, &textureID);
+                glBindTexture(GL_TEXTURE_2D, textureID);
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels.data());
+
+                glGenerateMipmap(GL_TEXTURE_2D);
+
+                glActiveTexture(GL_TEXTURE5);
+                glBindTexture(GL_TEXTURE_2D, textureID);
+                glUniform1i(glGetUniformLocation(shaderProgram, "glossTexture"), 5);
+                glUniform1f(glGetUniformLocation(shaderProgram, "glossShininess"), mesh.materialData[i].specularPower);
+            }
         }
         else
         {
             glm::vec4 color = debugColors[i % debugColors.size()];
-            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, glm::value_ptr(color));
+            glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, &color[0]);
         }
+
+        glEnable(GL_CULL_FACE);
 
         glDrawElements(GL_TRIANGLES, group.indexCount, GL_UNSIGNED_INT, (void*)(group.indexOffset * sizeof(uint32_t)));
         glBindVertexArray(0);

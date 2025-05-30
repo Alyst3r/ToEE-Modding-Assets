@@ -22,9 +22,9 @@ namespace MDF
 
 	struct SpecularRGBA
 	{
-		uint8_t r = 128;
-		uint8_t g = 128;
-		uint8_t b = 128;
+		uint8_t r = 0;
+		uint8_t g = 0;
+		uint8_t b = 0;
 		uint8_t a = 255;
 	};
 
@@ -39,7 +39,7 @@ namespace MDF
 		ColorRGBA color;
 		SpecularRGBA specular; // doesn't seem to exist in any existing material file, glossMap texture is used instead
 		float specularPower;
-		uint8_t materialBlendType = 0;
+		uint8_t materialBlendType = 1;
 		uint8_t renderFlags = 0;
 		uint8_t textureCount = 0; // seems like valid count is 0-4
 		uint8_t materialType = 0;
@@ -73,7 +73,7 @@ namespace MDF
 		enum RenderFlags : uint8_t
 		{
 			RENDER_FLAG_DOUBLE = 0x01,
-			//0x02 missing
+			RENDER_FLAG_CLAMP = 0x02,
 			RENDER_FLAG_RECALCULATE_NORMALS = 0x04,
 			RENDER_FLAG_Z_FILL_ONLY = 0x08,
 			RENDER_FLAG_COLOR_FILL_ONLY = 0x10,
@@ -101,4 +101,5 @@ namespace MDF
 	};
 
 	ColorRGBAFloat toRGBAFloat(ColorRGBA color);
+	ColorRGBAFloat toRGBAFloat(SpecularRGBA color);
 }

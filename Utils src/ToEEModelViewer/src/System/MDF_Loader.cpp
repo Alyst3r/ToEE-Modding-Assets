@@ -397,4 +397,16 @@ namespace MDF
 
         return tempColor;
     }
+
+    ColorRGBAFloat toRGBAFloat(SpecularRGBA color)
+    {
+        ColorRGBAFloat tempColor;
+
+        tempColor.r = (float)color.r / 255.f;
+        tempColor.g = (float)color.g / 255.f;
+        tempColor.b = (float)color.b / 255.f;
+        tempColor.a = (float)color.a / 255.f;
+
+        return tempColor;
+    }
 }

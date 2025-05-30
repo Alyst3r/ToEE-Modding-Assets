@@ -127,6 +127,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);
 
     GLFWwindow* window = glfwCreateWindow(display_w, display_h, "ToEE Model Viewer", nullptr, nullptr);
     if (!window)
@@ -626,7 +627,7 @@ int main()
         if (!geometryHidden)
         {
             glPolygonMode(GL_FRONT_AND_BACK, wireframeShown ? GL_LINE : GL_FILL);
-            renderer.render(view, proj, lightDir, uniformLighting, showTPose);
+            renderer.render(view, proj, lightDir, camera.getPosition(), uniformLighting, showTPose);
         }
 
         if (renderBones && skmLoaded)
