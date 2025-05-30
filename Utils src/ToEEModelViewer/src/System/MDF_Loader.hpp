@@ -46,7 +46,7 @@ namespace MDF
 
 		enum UVType : uint8_t
 		{
-			UV_TYPE_MESH = 0,
+			UV_TYPE_MESH = 0, // default
 			UV_TYPE_ENVIRONMENT = 1,
 			UV_TYPE_DRIFT = 2,
 			UV_TYPE_SWIRL = 3,
@@ -55,7 +55,7 @@ namespace MDF
 
 		enum BlendType : uint8_t
 		{
-			BLEND_TYPE_MODULATE = 0,
+			BLEND_TYPE_MODULATE = 0, // default
 			BLEND_TYPE_ADD = 1,
 			BLEND_TYPE_TEXTURE_ALPHA = 2,
 			BLEND_TYPE_CURRENT_ALPHA = 3,

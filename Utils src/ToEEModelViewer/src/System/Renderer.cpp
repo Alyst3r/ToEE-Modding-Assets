@@ -80,10 +80,16 @@ void Renderer::initialize()
         uniform sampler2D glossTexture;
 
         // uvType, blendType
-        uniform ivec2 types;
+        uniform ivec2 types0;
+        uniform ivec2 types1;
+        uniform ivec2 types2;
+        uniform ivec2 types3;
 
         // u, v
-        uniform vec2 speed;
+        uniform vec2 speed0;
+        uniform vec2 speed1;
+        uniform vec2 speed2;
+        uniform vec2 speed3;
 
         uniform bool hasGlossTexture;
         uniform bool isMaterialGeneral;
@@ -125,7 +131,7 @@ void Renderer::initialize()
             if (!isMaterialGeneral)
             {
                 tex0Color = texture(texture0, TexCoord);
-                alpha = baseColor.a;// * tex0Color.a;
+                alpha = baseColor.a * tex0Color.a;
                 color = baseColor.rgb * diff * tex0Color.rgb;
             }
             else
@@ -469,29 +475,32 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
             glUniform1i(glGetUniformLocation(shaderProgram, "isMaterialGeneral"), mesh.materialData[i].materialType == MDF::MDFFile::MATERIAL_TYPE_GENERAL);
             glUniform1i(glGetUniformLocation(shaderProgram, "textureCount"), mesh.materialData[i].textureCount);
 
-            GLint types[2] = {mesh.materialData[i].uvType[0], mesh.materialData[i].blendType[0]};
-            glm::vec2 speed = glm::vec2(mesh.materialData[i].speedU[0], mesh.materialData[i].speedV[0]);
-            auto& image = TGA::getOrLoadTexture(mesh.materialData[i].texturePath[0], mesh.textureCache);
+            for (uint32_t j = 0; j < mesh.materialData[i].textureCount; j++)
+            {
+                GLint types[2] = { mesh.materialData[i].uvType[j], mesh.materialData[i].blendType[j] };
+                glm::vec2 speed = glm::vec2(mesh.materialData[i].speedU[j], mesh.materialData[i].speedV[j]);
+                auto& image = TGA::getOrLoadTexture(mesh.materialData[i].texturePath[0], mesh.textureCache);
 
-            GLuint textureID;
-            glGenTextures(1, &textureID);
-            glBindTexture(GL_TEXTURE_2D, textureID);
+                GLuint textureID;
+                glGenTextures(1, &textureID);
+                glBindTexture(GL_TEXTURE_2D, textureID);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels.data());
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels.data());
 
-            glGenerateMipmap(GL_TEXTURE_2D);
+                glGenerateMipmap(GL_TEXTURE_2D);
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, textureID);
+                glActiveTexture(GL_TEXTURE1 + j);
+                glBindTexture(GL_TEXTURE_2D, textureID);
 
-            glUniform1i(glGetUniformLocation(shaderProgram, ("texture" + std::to_string(0)).c_str()), 1);
-            glUniform2iv(glGetUniformLocation(shaderProgram, "types"), 1, types);
-            glUniform2fv(glGetUniformLocation(shaderProgram, "speed"), 1, &speed[0]);
+                glUniform1i(glGetUniformLocation(shaderProgram, ("texture" + std::to_string(j)).c_str()), 1);
+                glUniform2iv(glGetUniformLocation(shaderProgram, ("types" + std::to_string(j)).c_str()), 1, types);
+                glUniform2fv(glGetUniformLocation(shaderProgram, ("speed" + std::to_string(j)).c_str()), 1, &speed[0]);
+            }
 
             if (!mesh.materialData[i].glossMap.empty())
             {
@@ -522,10 +531,10 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
             glUniform4fv(glGetUniformLocation(shaderProgram, "baseColor"), 1, &color[0]);
         }
 
-        glEnable(GL_CULL_FACE);
-
         glDrawElements(GL_TRIANGLES, group.indexCount, GL_UNSIGNED_INT, (void*)(group.indexOffset * sizeof(uint32_t)));
         glBindVertexArray(0);
+
+        glEnable(GL_CULL_FACE);
     }
 }
 
