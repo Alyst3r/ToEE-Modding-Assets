@@ -1,0 +1,60 @@
+File, for once, as opposed to other 3D formats used by ToEE, uses right-handed -Y-forward Z-up coordinate system (so, basically same as Blender).
+Binary stream of data, contains header with file info, array of vertex data and array of face data, no info about normals.
+
+Header:
+bytes 0-11: triplet of floats, position x y z (pivot), offset from model's (0, 0, 0)
+bytes 12-15: float, radius of cylinder (or rather, a circle, base of cylinder), it's a distance from position x y z (pivot) to vertex lying the furthest away
+(math: calculate length of each vector with initial point in position from bytes 0-7 and terminal point in vertex x, y, the longest value is our radius)
+bytes 16-19: object count; I've parsed every single ToEE DAG file, it is always 1
+bytes 20-23: offset, from start of file, points where data block info starts; always 24 (0x18), block contains next 16 bytes after this value
+
+Data block:
+bytes 24-27: number of vertices in vertex block
+bytes 38-31: number of faces in face block
+bytes 32-35: vertex data block offset, from the beginning of file; always 40 (0x28)
+bytes 36-39: face data block offset, from the beginning of file
+
+Vertex data block:
+Starts at 40 byte; contains vertex data in form of triplet of floats representing positions x y z; total length = number of vertices * 12
+
+Face data block:
+starts at 40 + vertex data block length; contains triplets of uint16 values representing indices of vertices building each rendered triangle;
+total length = number of faces * 6
+
+
+C(++) structures:
+struct Header
+{
+	float xOffset;
+	float yOffset;
+	float zOffset;
+	float boundingBoxRadius;
+	uint32_t objectCount;
+	uint32_t dataBlockOffset = 24;
+};
+
+struct DataBlock
+{
+	uint32_t vertexCount;
+	uint32_t faceCount;
+	uint32_t vertexDataOffset = 40;
+	uint32_t faceDataStartOffset;
+}
+
+struct Vertex
+{
+	float xPos;
+	float yPos;
+	float zPos;
+};
+
+struct Face
+{
+	short vertexIndex[3];
+};
+
+File:
+Header header;
+DataBlock dataBlock;
+Vertex vertices[dataBlock.vertexCount];
+Face triangles[dataBlock.faceCount];

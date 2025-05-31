@@ -17,3 +17,9 @@ Made in Blender 3.4.1 (again), it's basically recreation of original icon as rea
 
 ### ToEE Model Viewer
 Decided to mention it as its own header since it's kinda bigger util than others. In `Utils src` there is a new folder with source code of alpha version of model viewer I've started working on recently while on break from other stuff. For now it only displays raw geometry, without bones, materials or animations. I'm not providing compiled exe for now, if you really want to play with it, either compile yourself or grab pre-compiled x64 exe from Co8 forums.  
+  
+### Blender Importers+Exporters
+For 3.4.1 (since it's what I'm using due to certain RW addons I use not having versions for 4.0+). I am not an addon dev (and not much of a Python coder in general) so, to be perfectly honest with you, I've fed ChatGPT with fine-tuned prompts and got working code for SKM import (correctly applies conversion from Y-up Z-forward coordinate system used by ToEE models to Z-up -Y-forward; for now materials are in most base form, just setting first texture without alpha data, only rest pose is imported). Also, DAG import and export should be fully functional. At some point I want to have full SKM+SKA import/export working (not going to be easy, thanks, Troika, some models have mismatching bone dependencies between SKM and SKA, sometimes SKA has more bones than SKM, and so on).  
+  
+### File format specifications
+Various ToEE file format specifications written (or at least tried to be) in an accessible way.  
