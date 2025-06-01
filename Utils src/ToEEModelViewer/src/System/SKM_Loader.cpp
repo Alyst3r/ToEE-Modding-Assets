@@ -11,6 +11,23 @@
 
 namespace SKM
 {
+    static std::vector<std::string> exceptionList = {
+        "blackWidow.SKM",
+        "butterfly.SKM"
+        "Chicken-Brown.SKM",
+        "Chicken-Rooster.SKM",
+        "Chicken-White.SKM",
+        "EarthElemental.SKM",
+        "Glabrezu.SKM",
+        "Hezrou.SKM",
+        "hill_giant_scorrp.SKM",
+        "hugeSpider.skm",
+        "jackal.skm",
+        "jackalwere.SKM",
+        "Juggernaut_Statue.SKM",
+        "merrow.skm",
+    };
+
     bool SKMFile::loadFromFile(const std::string& path)
     {
         skmFilename = path.substr(path.find_last_of("/\\") + 1);
@@ -95,10 +112,15 @@ namespace SKM
                 }
             }
         }
+        else
+            exception = true;
 
         loadMaterials();
 
         loaded = true;
+
+        if (isOnExceptionList(path))
+            exception = true;
 
         return true;
     }
@@ -202,16 +224,32 @@ namespace SKM
             mesh.indices.insert(mesh.indices.end(), group.vertexIndices.begin(), group.vertexIndices.end());
         }
 
-        mesh.skinningMatrix.resize(skaWorldMatrices.size());
-        for (size_t i = 0; i < skaWorldMatrices.size(); i++)
-            mesh.skinningMatrix[i] = skaWorldMatrices[i] * skmInverseWorldMatrices[i];
+        if (!exception)
+        {
+            mesh.skaWorldMatrices.resize(skaWorldMatrices.size());
+            mesh.skaWorldMatrices = skaWorldMatrices;
 
-        mesh.tPoseSkinningMatrix.resize(skaWorldMatrices.size());
-        for (size_t i = 0; i < skaWorldMatrices.size(); i++)
-            mesh.tPoseSkinningMatrix[i] = glm::mat4(1.f);
+            mesh.skinningMatrix.resize(skaWorldMatrices.size());
+            for (size_t i = 0; i < skaWorldMatrices.size(); i++)
+                mesh.skinningMatrix[i] = skaWorldMatrices[i] * skmInverseWorldMatrices[i];
 
-        mesh.skaWorldMatrices.resize(skaWorldMatrices.size());
-        mesh.skaWorldMatrices = skaWorldMatrices;
+            mesh.tPoseSkinningMatrix.resize(skaWorldMatrices.size());
+            for (size_t i = 0; i < skaWorldMatrices.size(); i++)
+                mesh.tPoseSkinningMatrix[i] = glm::mat4(1.f);
+        }
+        else
+        {
+            mesh.skaWorldMatrices.resize(skmWorldMatrices.size());
+            mesh.skaWorldMatrices = skmWorldMatrices;
+
+            mesh.skinningMatrix.resize(skmWorldMatrices.size());
+            for (size_t i = 0; i < skmWorldMatrices.size(); i++)
+                mesh.skinningMatrix[i] = glm::mat4(1.f);
+
+            mesh.tPoseSkinningMatrix.resize(skaWorldMatrices.size());
+            for (size_t i = 0; i < skaWorldMatrices.size(); i++)
+                mesh.tPoseSkinningMatrix[i] = glm::mat4(1.f);
+        }
 
         mesh.skmWorldMatrices.resize(skmWorldMatrices.size());
         mesh.skmWorldMatrices = skmWorldMatrices;
@@ -387,5 +425,22 @@ namespace SKM
         }
 
         return true;
+    }
+
+    bool isOnExceptionList(const std::string path)
+    {
+        bool result = false;
+        std::string filename = path.substr(path.find_last_of("/\\") + 1);
+
+        for (uint32_t i = 0; i < exceptionList.size(); i++)
+        {
+            if (exceptionList[i] == filename)
+            {
+                result = true;
+                break;
+            }
+        }
+
+        return result;
     }
 }

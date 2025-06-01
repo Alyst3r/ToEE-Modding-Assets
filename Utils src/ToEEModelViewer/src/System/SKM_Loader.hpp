@@ -139,6 +139,7 @@ namespace SKM
         std::string skmFilename;
 
         bool loaded = false;
+        bool exception = false;
 
         void SKMFile::clear();
 
@@ -154,4 +155,6 @@ namespace SKM
     };
 
     glm::mat4 toMat(const SKM::Matrix3x4& matrix);
+
+    bool isOnExceptionList(const std::string path);
 }

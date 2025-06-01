@@ -262,6 +262,13 @@ int main()
 
                 if (skmModel.loadFromFile(filePath))
                 {
+                    if (SKM::isOnExceptionList(filePath))
+                    {
+                        toastMessage = "Bone mismatch between SKM and SKA files. Bind pose skipped.";
+                        toastTimer = 10.0f;
+                        showToast = true;
+                    }
+
                     animsLoaded = skmModel.populateAnimNames(animationNames);
                     renderer.uploadMesh(skmModel.toMesh());
                     loadedFilePath = filePath;
@@ -560,7 +567,7 @@ int main()
             }
             else
             {
-                ImVec2 toastPos = ImVec2(viewport->Pos.x + 20, viewport->Pos.y + 20);
+                ImVec2 toastPos = ImVec2(viewport->Pos.x + 10, viewport->Pos.y + 30);
 
                 ImGui::SetNextWindowBgAlpha(0.8f);
                 ImGui::SetNextWindowPos(toastPos, ImGuiCond_Always);
