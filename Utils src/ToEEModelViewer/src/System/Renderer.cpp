@@ -614,7 +614,7 @@ void Renderer::render(const glm::mat4& view, const glm::mat4& projection, const 
                 case MDF::MDFFile::MATERIAL_BLEND_TYPE_ALPHA_ADD:
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-                    //glDepthMask(GL_FALSE);
+                    glDepthMask(GL_FALSE);
                     break;
             }
 
