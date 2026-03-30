@@ -43,6 +43,7 @@ int main()
 		fileList.emplace_back(entry.path().string());
 		filenames.emplace_back(entry.path().stem().string());
 		++fileCount;
+		std::cout << entry.path().filename().string() << "\n";
 	}
 
 	for (i = 0; i < fileCount; i++)

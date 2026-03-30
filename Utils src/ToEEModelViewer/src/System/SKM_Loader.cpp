@@ -95,10 +95,10 @@ namespace SKM
             skaWorldMatrices.resize(bones.size());
             for (size_t i = 0; i < bones.size(); i++)
             {
-                const auto& t = animation.boneTransforms[i];
-                glm::mat4 T = glm::translate(glm::mat4(1.0f), t.position);
-                glm::mat4 R = glm::toMat4(t.rotation);
-                glm::mat4 S = glm::scale(glm::mat4(1.0f), t.scale);
+                const auto& transform = animation.boneTransforms[i];
+                glm::mat4 T = glm::translate(glm::mat4(1.0f), transform.position);
+                glm::mat4 R = glm::toMat4(transform.rotation);
+                glm::mat4 S = glm::scale(glm::mat4(1.0f), transform.scale);
                 glm::mat4 localMatrix = T * R * S;
                 int parent = bones[i].parentBone;
 
@@ -148,36 +148,36 @@ namespace SKM
         glm::vec3 minPos(FLT_MAX), maxPos(-FLT_MAX);
 
         mesh.vertices.reserve(vertices.size());
-        for (const auto& v : vertices)
+        for (const auto& vertex : vertices)
         {
             GPUVertex out = {};
-            out.position = glm::vec3(v.vertexPosition.x, v.vertexPosition.y, v.vertexPosition.z);
-            out.uv = glm::vec2(v.uvPosition.x, v.uvPosition.y);
-            out.normal = glm::vec3(v.normals.x, v.normals.y, v.normals.z);
+            out.position = glm::vec3(vertex.vertexPosition.x, vertex.vertexPosition.y, vertex.vertexPosition.z);
+            out.uv = glm::vec2(vertex.uvPosition.x, vertex.uvPosition.y);
+            out.normal = glm::vec3(vertex.normals.x, vertex.normals.y, vertex.normals.z);
 
-            if (v.vertexWeightsCount > 0)
+            if (vertex.vertexWeightsCount > 0)
             {
-                if (v.vertexWeightsCount <= 4)
+                if (vertex.vertexWeightsCount <= 4)
                 {
                     for (int i = 0; i < 4; i++)
                     {
-                        out.boneIDs[i] = v.boneID[i];
-                        out.boneWeights[i] = v.boneWeight[i];
+                        out.boneIDs[i] = vertex.boneID[i];
+                        out.boneWeights[i] = vertex.boneWeight[i];
                     }
                 }
                 else
                 {
-                    LOG_WARN << skmFilename << ": more than 4 vertex weights, vertex ID: " << vertexID << ", number of weights: " << v.vertexWeightsCount;
+                    LOG_WARN << skmFilename << ": more than 4 vertex weights, vertex ID: " << vertexID << ", number of weights: " << vertex.vertexWeightsCount;
 
-                    for (int i = 0; i < v.vertexWeightsCount; i++)
+                    for (int i = 0; i < vertex.vertexWeightsCount; i++)
                     {
-                        LOG_WARN << bones[v.boneID[i]].boneName << ": bone ID (" << v.boneID[i] << "), bone weight(" << v.boneWeight[i] <<")";
+                        LOG_WARN << bones[vertex.boneID[i]].boneName << ": bone ID (" << vertex.boneID[i] << "), bone weight(" << vertex.boneWeight[i] <<")";
                     }
 
                     std::vector<std::pair<float, uint16_t>> weights;
-                    for (int i = 0; i < v.vertexWeightsCount; i++)
+                    for (int i = 0; i < vertex.vertexWeightsCount; i++)
                     {
-                        weights.emplace_back(v.boneWeight[i], v.boneID[i]);
+                        weights.emplace_back(vertex.boneWeight[i], vertex.boneID[i]);
                     }
                     
                     std::sort(weights.begin(), weights.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
@@ -206,7 +206,7 @@ namespace SKM
 
             mesh.vertices.emplace_back(out);
 
-            glm::vec3 pos(v.vertexPosition.x, v.vertexPosition.y, v.vertexPosition.z);
+            glm::vec3 pos(vertex.vertexPosition.x, vertex.vertexPosition.y, vertex.vertexPosition.z);
             minPos = glm::min(minPos, pos);
             maxPos = glm::max(maxPos, pos);
 
@@ -420,8 +420,8 @@ namespace SKM
             animList.resize(0);
             animList.reserve(animation.header.animCount);
 
-            for (const auto& it : animation.animHeaderData)
-                animList.emplace_back(it.name);
+            for (const auto& anim : animation.animHeaderData)
+                animList.emplace_back(anim.name);
         }
 
         return true;

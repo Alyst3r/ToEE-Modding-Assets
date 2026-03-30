@@ -11,7 +11,7 @@ namespace TGA
         if (!file)
             return false;
 
-        uint8_t header[18];
+        uint8_t header[18] = { 0 };
 
         file.read(reinterpret_cast<char*>(header), 18);
         if (file.gcount() != 18)

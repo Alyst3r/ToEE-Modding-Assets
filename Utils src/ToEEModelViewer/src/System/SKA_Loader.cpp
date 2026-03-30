@@ -48,12 +48,12 @@ namespace SKA
     {
         boneTransforms.reserve(boneData.size());
 
-        for (const auto& b : boneData)
+        for (const auto& bone : boneData)
         {
             BoneTransform transform = { };
-            transform.scale = glm::vec3(b.scale.x, b.scale.y, b.scale.z);
-            transform.rotation = glm::quat(b.rotQuaternions.w, b.rotQuaternions.x, b.rotQuaternions.y, b.rotQuaternions.z);
-            transform.position = glm::vec3(b.position.x, b.position.y, b.position.z);
+            transform.scale = glm::vec3(bone.scale.x, bone.scale.y, bone.scale.z);
+            transform.rotation = glm::quat(bone.rotQuaternions.w, bone.rotQuaternions.x, bone.rotQuaternions.y, bone.rotQuaternions.z);
+            transform.position = glm::vec3(bone.position.x, bone.position.y, bone.position.z);
             boneTransforms.push_back(transform);
         }
     }
@@ -62,8 +62,8 @@ namespace SKA
     {
         int16_t temp = 0;
 
-        for (const auto& it : animHeaderData)
-            temp += it.eventCount;
+        for (const auto& anim : animHeaderData)
+            temp += anim.eventCount;
 
         return temp;
     }
